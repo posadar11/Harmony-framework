@@ -6,7 +6,7 @@ import QRCode from "qrcode";
 import { StaticDiagram } from "@/components/DiagramBuilder";
 import { type DomainCircle } from "@/lib/diagram-types";
 import { averageDiagram, createRoomCode, type RoomSubmission } from "@/lib/live-room";
-import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/facilitator")({
   head: () => ({
@@ -108,6 +108,8 @@ function FacilitatorPage() {
     } catch {
       setRoomSubmissions([]);
     }
+
+    if (!isSupabaseConfigured()) return;
 
     const channel = supabase
       .channel(`harmony-room-${roomCode}`)
@@ -629,6 +631,7 @@ function RoomAverage({
 }) {
   const current = averageDiagram(submissions, "current");
   const ideal = averageDiagram(submissions, "ideal");
+  const liveConnectionAvailable = isSupabaseConfigured();
 
   return (
     <div>
@@ -637,6 +640,12 @@ function RoomAverage({
         {submissions.length} {submissions.length === 1 ? "participant" : "participants"} submitted ·
         Room {roomCode}
       </p>
+      {!liveConnectionAvailable && (
+        <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-3 text-sm text-foreground/80">
+          Live collection is not connected yet. Add VITE_SUPABASE_URL and
+          VITE_SUPABASE_PUBLISHABLE_KEY to Railway, then redeploy.
+        </div>
+      )}
       {submissions.length === 0 ? (
         <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-border bg-card/60 p-10 text-muted-foreground">
           Waiting for participants to press Submit…
