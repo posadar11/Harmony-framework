@@ -8,7 +8,11 @@ export interface RoomSubmission {
 }
 
 export function createRoomCode() {
-  return crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase();
+  const randomValue =
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID().replaceAll("-", "")
+      : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+  return randomValue.slice(0, 8).toUpperCase();
 }
 
 export function averageDiagram(

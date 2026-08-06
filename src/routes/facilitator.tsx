@@ -92,7 +92,7 @@ function FacilitatorPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!roomCode) return;
-    const url = `${window.location.origin}/join?room=${encodeURIComponent(roomCode)}`;
+    const url = `${window.location.origin}/join?room=${encodeURIComponent(roomCode)}&v=${Date.now()}`;
     setJoinUrl(url);
     QRCode.toDataURL(url, { width: 720, margin: 2, color: { dark: "#2b2a26", light: "#ffffff" } })
       .then(setQrDataUrl)
