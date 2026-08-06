@@ -36,7 +36,7 @@ const getInsights = createServerFn({ method: "POST" })
     const { current, ideal } = data;
     const apiKey = process.env.OPENAI_API_KEY;
 
-        if (!apiKey) {
+    if (!apiKey) {
       return {
         summary:
           "Insights aren't turned on yet. Add an OPENAI_API_KEY environment variable on the server to enable AI-generated insights.",
@@ -64,7 +64,8 @@ const getInsights = createServerFn({ method: "POST" })
     const table = rows
       .map((r) => {
         if (r.gap === 0) return `${r.label}: current ${r.cur}%, ideal ${r.ide}% (no gap)`;
-        const direction = r.gap > 0 ? `wants ${r.gap} pts MORE` : `wants ${Math.abs(r.gap)} pts LESS`;
+        const direction =
+          r.gap > 0 ? `wants ${r.gap} pts MORE` : `wants ${Math.abs(r.gap)} pts LESS`;
         return `${r.label}: current ${r.cur}%, ideal ${r.ide}% (${direction})`;
       })
       .join("\n");
@@ -85,18 +86,18 @@ ${
 }
 
 Write a specific, perceptive 3-4 sentence summary. ${
-  allAligned
-    ? "Since there's no gap, don't invent one - instead comment on what an evenly-matched split like this really takes to sustain in a busy life, and gently question whether a perfectly even split might itself hide trade-offs worth noticing."
-    : "Name the domain(s) with the biggest gap explicitly, state the size of the gap in points, and speculate concretely on a plausible real reason for that imbalance (for example a demanding work season, caregiving, or a recent life change) and the trade-off it likely forces."
-} Avoid vague phrases like "seek balance" or "room for growth" - write as if you actually studied these exact numbers.
+      allAligned
+        ? "Since there's no gap, don't invent one - instead comment on what an evenly-matched split like this really takes to sustain in a busy life, and gently question whether a perfectly even split might itself hide trade-offs worth noticing."
+        : "Name the domain(s) with the biggest gap explicitly, state the size of the gap in points, and speculate concretely on a plausible real reason for that imbalance (for example a demanding work season, caregiving, or a recent life change) and the trade-off it likely forces."
+    } Avoid vague phrases like "seek balance" or "room for growth" - write as if you actually studied these exact numbers.
 
 Then give exactly 4 suggestions. Each must be one sentence, name a specific domain from the list above, ${
-  allAligned ? "" : "reference its actual point gap, "
-}and describe one concrete action to try this week (a specific time block, a boundary to set, a habit, or a conversation to have) rather than generic encouragement. ${
-  allAligned
-    ? "Since there's no gap to close, make the suggestions about protecting and deepening the domains that matter most, and about periodically re-checking whether the split still feels right in practice."
-    : ""
-}
+      allAligned ? "" : "reference its actual point gap, "
+    }and describe one concrete action to try this week (a specific time block, a boundary to set, a habit, or a conversation to have) rather than generic encouragement. ${
+      allAligned
+        ? "Since there's no gap to close, make the suggestions about protecting and deepening the domains that matter most, and about periodically re-checking whether the split still feels right in practice."
+        : ""
+    }
 
 Also include exactly 3 reflective questions as "homework" - questions the person should ask themselves to help close the gap (or, if aligned, to keep checking in with themselves). Each question should be specific to the domains and gap above, phrased in the second person ("Are you..." / "What would it take for you to..."), and genuinely thought-provoking rather than generic.\n\nRespond ONLY with JSON in this exact shape: {"summary": string, "suggestions": string[], "questions": string[]}`;
 
@@ -132,7 +133,8 @@ Also include exactly 3 reflective questions as "homework" - questions the person
     } catch (err) {
       console.error("[insights] LLM call failed", err);
       return {
-        summary: "We couldn't generate personalized insights right now, but your comparison is ready below.",
+        summary:
+          "We couldn't generate personalized insights right now, but your comparison is ready below.",
         suggestions: [],
         questions: [],
       };
@@ -168,6 +170,7 @@ function JoinPage() {
         summary:
           "We couldn't generate personalized insights right now, but your comparison is ready below.",
         suggestions: [],
+        questions: [],
       });
     } finally {
       setStep("results");
@@ -199,7 +202,9 @@ function JoinPage() {
       <main className="mx-auto max-w-2xl px-4 py-8 md:py-12">
         <header className="text-center">
           <p className="text-xs uppercase tracking-[0.2em] text-accent">The Diagram</p>
-          <h1 className="mt-2 font-serif text-3xl md:text-4xl text-foreground">Build your Harmony</h1>
+          <h1 className="mt-2 font-serif text-3xl md:text-4xl text-foreground">
+            Build your Harmony
+          </h1>
           <p className="mt-3 text-sm md:text-base text-muted-foreground">
             {step === "ideal" && "First, shape the diagram for how you want life to be."}
             {step === "current" && "Now, shape the diagram for how life is right now."}
@@ -226,7 +231,9 @@ function JoinPage() {
         <div className="mt-6">
           {step === "ideal" && (
             <div>
-              <h2 className="font-serif text-xl text-foreground text-center mb-3">Step 1 of 2 — Ideal</h2>
+              <h2 className="font-serif text-xl text-foreground text-center mb-3">
+                Step 1 of 2 — Ideal
+              </h2>
               <DiagramBuilder circles={ideal} onChange={setIdeal} showYou />
               <div className="sticky bottom-4 mt-8">
                 <button
@@ -241,7 +248,9 @@ function JoinPage() {
 
           {step === "current" && (
             <div>
-              <h2 className="font-serif text-xl text-foreground text-center mb-3">Step 2 of 2 — Current</h2>
+              <h2 className="font-serif text-xl text-foreground text-center mb-3">
+                Step 2 of 2 — Current
+              </h2>
               <DiagramBuilder circles={current} onChange={setCurrent} showYou />
               <div className="sticky bottom-4 mt-8">
                 <button
@@ -283,7 +292,9 @@ function JoinPage() {
                   )}
                   {insights.questions.length > 0 && (
                     <div className="mt-4">
-                      <h4 className="text-sm font-medium text-foreground/90">Questions to sit with</h4>
+                      <h4 className="text-sm font-medium text-foreground/90">
+                        Questions to sit with
+                      </h4>
                       <ul className="mt-2 space-y-2">
                         {insights.questions.map((q, i) => (
                           <li key={i} className="text-sm text-foreground/80 flex gap-2">
@@ -300,15 +311,19 @@ function JoinPage() {
               <div className="mt-8 rounded-2xl border border-border bg-card/70 p-6 text-center">
                 {done ? (
                   <div>
-                    <p className="font-serif text-2xl text-foreground">Thank you for completing this.</p>
+                    <p className="font-serif text-2xl text-foreground">
+                      Thank you for completing this.
+                    </p>
                     <p className="mt-2 text-foreground/80">We appreciate you taking the time.</p>
                   </div>
                 ) : (
                   <div>
-                    <p className="font-serif text-xl text-foreground">Thank you for completing this.</p>
+                    <p className="font-serif text-xl text-foreground">
+                      Thank you for completing this.
+                    </p>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      Want something curated for you, and to hear about future developments? Leave your
-                      email below.
+                      Want something curated for you, and to hear about future developments? Leave
+                      your email below.
                     </p>
                     <input
                       type="email"

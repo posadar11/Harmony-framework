@@ -33,7 +33,13 @@ function getStaticLabelSize(text: string, canvasSize: number) {
   return { width, height: lines * 16 + 5, maxWidth };
 }
 
-function circleIntersectionPercent(cx: number, cy: number, r: number, center: number, youR: number) {
+function circleIntersectionPercent(
+  cx: number,
+  cy: number,
+  r: number,
+  center: number,
+  youR: number,
+) {
   const d = Math.hypot(cx - center, cy - center);
   let area = 0;
   if (d >= youR + r) area = 0;
@@ -42,7 +48,9 @@ function circleIntersectionPercent(cx: number, cy: number, r: number, center: nu
     const clampUnit = (v: number) => Math.min(1, Math.max(-1, v));
     const a1 = youR * youR * Math.acos(clampUnit((d * d + youR * youR - r * r) / (2 * d * youR)));
     const a2 = r * r * Math.acos(clampUnit((d * d + r * r - youR * youR) / (2 * d * r)));
-    const a3 = 0.5 * Math.sqrt(Math.max(0, (-d + youR + r) * (d + youR - r) * (d - youR + r) * (d + youR + r)));
+    const a3 =
+      0.5 *
+      Math.sqrt(Math.max(0, (-d + youR + r) * (d + youR - r) * (d - youR + r) * (d + youR + r)));
     area = a1 + a2 - a3;
   }
   return Math.round((area / (Math.PI * youR * youR)) * 100);
@@ -54,6 +62,8 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
   const [selected, setSelected] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  const pointersRef = useRef(new Map<number, { id: string; x: number; y: number }>());
+  const pinchRef = useRef<{ id: string; distance: number; percent: number } | null>(null);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -96,6 +106,22 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
     e.preventDefault();
     (e.target as Element).setPointerCapture?.(e.pointerId);
     setSelected(c.id);
+    pointersRef.current.set(e.pointerId, { id: c.id, x: e.clientX, y: e.clientY });
+
+    const circlePointers = [...pointersRef.current.values()].filter(
+      (pointer) => pointer.id === c.id,
+    );
+    if (circlePointers.length >= 2) {
+      const [first, second] = circlePointers;
+      pinchRef.current = {
+        id: c.id,
+        distance: Math.max(1, Math.hypot(second.x - first.x, second.y - first.y)),
+        percent: c.percent,
+      };
+      dragRef.current = null;
+      return;
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -109,6 +135,25 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    const pointer = pointersRef.current.get(e.pointerId);
+    if (pointer) {
+      pointersRef.current.set(e.pointerId, { ...pointer, x: e.clientX, y: e.clientY });
+    }
+
+    if (pinchRef.current) {
+      const pinch = pinchRef.current;
+      const circlePointers = [...pointersRef.current.values()].filter(
+        (activePointer) => activePointer.id === pinch.id,
+      );
+      if (circlePointers.length >= 2) {
+        const [first, second] = circlePointers;
+        const distance = Math.hypot(second.x - first.x, second.y - first.y);
+        const scale = distance / pinch.distance;
+        update(pinch.id, { percent: Math.round(clamp(pinch.percent * scale * scale, 0, 100)) });
+      }
+      return;
+    }
+
     if (!dragRef.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -121,7 +166,14 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
     });
   };
 
-  const onPointerUp = () => {
+  const onPointerUp = (e: React.PointerEvent) => {
+    pointersRef.current.delete(e.pointerId);
+    if (pinchRef.current) {
+      const remaining = [...pointersRef.current.values()].filter(
+        (pointer) => pointer.id === pinchRef.current?.id,
+      );
+      if (remaining.length < 2) pinchRef.current = null;
+    }
     dragRef.current = null;
   };
 
@@ -138,6 +190,9 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
         className="relative w-full rounded-2xl border border-border bg-card/60 venn-bg overflow-hidden touch-none select-none"
         style={{ aspectRatio: "1 / 1", maxHeight: compact ? 380 : 560 }}
       >
+        <p className="absolute bottom-2 left-0 right-0 z-30 text-center text-[11px] text-muted-foreground pointer-events-none">
+          Drag to move · pinch with two fingers to resize
+        </p>
         {showYou && (
           <>
             <div
@@ -223,10 +278,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
                   }`}
                 />
               </button>
-              <span
-                className="h-3 w-3 rounded-full shrink-0"
-                style={{ background: c.color }}
-              />
+              <span className="h-3 w-3 rounded-full shrink-0" style={{ background: c.color }} />
               {renaming === c.id ? (
                 <input
                   autoFocus
@@ -452,8 +504,16 @@ export function StaticDiagram({
             }
             // clamp back into the canvas after each pass
             for (const p of placements) {
-              p.x = clamp(p.x, STATIC_LABEL_PADDING + p.w / 2, size - STATIC_LABEL_PADDING - p.w / 2);
-              p.y = clamp(p.y, STATIC_LABEL_PADDING + p.h / 2, size - STATIC_LABEL_PADDING - p.h / 2);
+              p.x = clamp(
+                p.x,
+                STATIC_LABEL_PADDING + p.w / 2,
+                size - STATIC_LABEL_PADDING - p.w / 2,
+              );
+              p.y = clamp(
+                p.y,
+                STATIC_LABEL_PADDING + p.h / 2,
+                size - STATIC_LABEL_PADDING - p.h / 2,
+              );
             }
             if (!moved) break;
           }

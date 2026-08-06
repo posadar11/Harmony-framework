@@ -24,15 +24,29 @@ export const DEFAULT_COLORS = [
 
 export const DEFAULT_DOMAINS: Omit<DomainCircle, "id">[] = [
   { label: "Work", percent: 60, x: 0.32, y: 0.38, enabled: true, color: DEFAULT_COLORS[0] },
-  { label: "Close relationships", percent: 20, x: 0.6, y: 0.4, enabled: true, color: DEFAULT_COLORS[1] },
+  {
+    label: "Close relationships",
+    percent: 20,
+    x: 0.6,
+    y: 0.4,
+    enabled: true,
+    color: DEFAULT_COLORS[1],
+  },
   { label: "Family", percent: 20, x: 0.45, y: 0.62, enabled: true, color: DEFAULT_COLORS[2] },
   { label: "Community", percent: 20, x: 0.72, y: 0.65, enabled: true, color: DEFAULT_COLORS[3] },
   { label: "Hobbies", percent: 20, x: 0.25, y: 0.7, enabled: true, color: DEFAULT_COLORS[4] },
-  { label: "Time for myself", percent: 20, x: 0.55, y: 0.25, enabled: true, color: DEFAULT_COLORS[5] },
+  {
+    label: "Time for myself",
+    percent: 20,
+    x: 0.55,
+    y: 0.25,
+    enabled: true,
+    color: DEFAULT_COLORS[5],
+  },
 ];
 
 export function makeDefaultDiagram(): DomainCircle[] {
-  return DEFAULT_DOMAINS.map((d, i) => ({ ...d, id: `d-${i}-${Math.random().toString(36).slice(2, 7)}` }));
+  return DEFAULT_DOMAINS.map((d, i) => ({ ...d, id: `d-${i}` }));
 }
 
 /** All domains present but toggled off; optionally leave one label enabled (e.g. "Work"). */
@@ -40,6 +54,7 @@ export function makeStartingDiagram(enabledLabels: string[] = []): DomainCircle[
   return DEFAULT_DOMAINS.map((d, i) => ({
     ...d,
     enabled: enabledLabels.includes(d.label),
-    id: `d-${i}-${Math.random().toString(36).slice(2, 7)}`,
+    // Stable IDs keep the server-rendered diagram identical during browser hydration.
+    id: `d-${i}`,
   }));
 }
