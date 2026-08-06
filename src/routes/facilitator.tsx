@@ -148,24 +148,23 @@ function FacilitatorPage() {
   };
 
   // Sample diagrams used to illustrate the concept during presentation.
-  // Current: Work covers ~80% of You; other domains are small and isolated
-  // (they don't overlap You or each other).
+  // Current: Work receives most of the allocation; other domains are smaller and isolated.
   const currentSample: DomainCircle[] = [
-    { id: "s-wk", label: "Work", percent: 100, x: 0.56, y: 0.56, enabled: true, color: "#7BA7C5" },
+    { id: "s-wk", label: "Work", percent: 60, x: 0.56, y: 0.56, enabled: true, color: "#7BA7C5" },
     {
       id: "s-cr",
       label: "Close relationships",
-      percent: 22,
+      percent: 10,
       x: 0.76,
       y: 0.26,
       enabled: true,
       color: "#C58F8F",
     },
-    { id: "s-fm", label: "Family", percent: 22, x: 0.24, y: 0.74, enabled: true, color: "#B8A05E" },
+    { id: "s-fm", label: "Family", percent: 15, x: 0.24, y: 0.74, enabled: true, color: "#B8A05E" },
     {
       id: "s-cm",
       label: "Community",
-      percent: 20,
+      percent: 5,
       x: 0.24,
       y: 0.32,
       enabled: true,
@@ -174,7 +173,7 @@ function FacilitatorPage() {
     {
       id: "s-hb",
       label: "Hobbies",
-      percent: 20,
+      percent: 10,
       x: 0.74,
       y: 0.72,
       enabled: true,
@@ -182,30 +181,29 @@ function FacilitatorPage() {
     },
   ];
 
-  // Ideal: Work covers ~65-70% of You, and the rest of life is distributed
-  // around You with real overlap between the domains.
+  // Ideal: Time is distributed more evenly, with real overlap between domains.
   const idealSample: DomainCircle[] = [
-    { id: "i-wk", label: "Work", percent: 100, x: 0.6, y: 0.6, enabled: true, color: "#7BA7C5" },
+    { id: "i-wk", label: "Work", percent: 35, x: 0.6, y: 0.6, enabled: true, color: "#7BA7C5" },
     {
       id: "i-cr",
       label: "Close relationships",
-      percent: 50,
+      percent: 20,
       x: 0.7,
       y: 0.3,
       enabled: true,
       color: "#C58F8F",
     },
-    { id: "i-fm", label: "Family", percent: 50, x: 0.3, y: 0.3, enabled: true, color: "#B8A05E" },
+    { id: "i-fm", label: "Family", percent: 20, x: 0.3, y: 0.3, enabled: true, color: "#B8A05E" },
     {
       id: "i-cm",
       label: "Community",
-      percent: 45,
+      percent: 10,
       x: 0.3,
       y: 0.7,
       enabled: true,
       color: "#8FA98A",
     },
-    { id: "i-hb", label: "Hobbies", percent: 45, x: 0.7, y: 0.7, enabled: true, color: "#B592C1" },
+    { id: "i-hb", label: "Hobbies", percent: 15, x: 0.7, y: 0.7, enabled: true, color: "#B592C1" },
   ];
 
   // Flow: framework intro → current vs ideal → QR → then the reflection questions.

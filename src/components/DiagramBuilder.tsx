@@ -14,6 +14,9 @@ interface Props {
 const MIN_R = 30;
 const MAX_R = 165;
 const STATIC_LABEL_PADDING = 10;
+const MIN_ALLOCATION = 5;
+const ALLOCATION_STEP = 5;
+const DRAG_THRESHOLD_PX = 7;
 
 function radiusFor(percent: number, canvasSize: number) {
   const base = MIN_R + (MAX_R - MIN_R) * (percent / 100);
@@ -33,37 +36,26 @@ function getStaticLabelSize(text: string, canvasSize: number) {
   return { width, height: lines * 16 + 5, maxWidth };
 }
 
-function circleIntersectionPercent(
-  cx: number,
-  cy: number,
-  r: number,
-  center: number,
-  youR: number,
-) {
-  const d = Math.hypot(cx - center, cy - center);
-  let area = 0;
-  if (d >= youR + r) area = 0;
-  else if (d <= Math.abs(youR - r)) area = Math.PI * Math.min(youR, r) ** 2;
-  else {
-    const clampUnit = (v: number) => Math.min(1, Math.max(-1, v));
-    const a1 = youR * youR * Math.acos(clampUnit((d * d + youR * youR - r * r) / (2 * d * youR)));
-    const a2 = r * r * Math.acos(clampUnit((d * d + r * r - youR * youR) / (2 * d * r)));
-    const a3 =
-      0.5 *
-      Math.sqrt(Math.max(0, (-d + youR + r) * (d + youR - r) * (d - youR + r) * (d + youR + r)));
-    area = a1 + a2 - a3;
-  }
-  return Math.round((area / (Math.PI * youR * youR)) * 100);
-}
-
 export function DiagramBuilder({ circles, onChange, compact = false, showYou = false }: Props) {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const circlesRef = useRef(circles);
   const [size, setSize] = useState(compact ? 340 : 520);
   const [selected, setSelected] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
-  const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
-  const pointersRef = useRef(new Map<number, { id: string; x: number; y: number }>());
-  const pinchRef = useRef<{ id: string; distance: number; percent: number } | null>(null);
+  const [allocationNotice, setAllocationNotice] = useState<string | null>(null);
+  const dragRef = useRef<{
+    id: string;
+    pointerId: number;
+    startClientX: number;
+    startClientY: number;
+    startX: number;
+    startY: number;
+    moved: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    circlesRef.current = circles;
+  }, [circles]);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -78,24 +70,88 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
     return () => ro.disconnect();
   }, []);
 
-  const update = (id: string, patch: Partial<DomainCircle>) =>
-    onChange(circles.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  useEffect(() => {
+    const cancelGesture = () => {
+      dragRef.current = null;
+    };
+    window.addEventListener("blur", cancelGesture);
+    return () => window.removeEventListener("blur", cancelGesture);
+  }, []);
 
-  const remove = (id: string) => onChange(circles.filter((c) => c.id !== id));
+  const replaceCircles = (next: DomainCircle[]) => {
+    circlesRef.current = next;
+    onChange(next);
+  };
+
+  const update = (id: string, patch: Partial<DomainCircle>) => {
+    replaceCircles(circlesRef.current.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  };
+
+  const allocatedTotal = circles
+    .filter((circle) => circle.enabled)
+    .reduce((sum, circle) => sum + circle.percent, 0);
+  const remainingAllocation = Math.max(0, 100 - allocatedTotal);
+
+  const maxAllocationFor = (id: string) => {
+    const circle = circlesRef.current.find((item) => item.id === id);
+    const allocatedToOthers = circlesRef.current
+      .filter((item) => item.enabled && item.id !== id)
+      .reduce((sum, item) => sum + item.percent, 0);
+    return Math.max(circle?.enabled ? MIN_ALLOCATION : 0, 100 - allocatedToOthers);
+  };
+
+  const updateAllocation = (id: string, requested: number) => {
+    const maximum = maxAllocationFor(id);
+    update(id, { percent: Math.round(clamp(requested, MIN_ALLOCATION, maximum)) });
+    setAllocationNotice(null);
+  };
+
+  const toggleCircle = (circle: DomainCircle) => {
+    if (circle.enabled) {
+      update(circle.id, { enabled: false });
+      setAllocationNotice(null);
+      return;
+    }
+
+    const remaining = Math.max(
+      0,
+      100 -
+        circlesRef.current
+          .filter((item) => item.enabled)
+          .reduce((sum, item) => sum + item.percent, 0),
+    );
+    if (remaining < MIN_ALLOCATION) {
+      setAllocationNotice(
+        "Reduce another domain before adding this one. The total cannot exceed 100%.",
+      );
+      return;
+    }
+    update(circle.id, { enabled: true, percent: Math.min(20, remaining) });
+    setAllocationNotice(null);
+  };
+
+  const remove = (id: string) => replaceCircles(circlesRef.current.filter((c) => c.id !== id));
 
   const addCustom = () => {
     const customCount = circles.filter((c) => c.custom).length;
     if (customCount >= 2) return;
     const color = DEFAULT_COLORS[6 + customCount] ?? DEFAULT_COLORS[0];
-    onChange([
-      ...circles,
+    const remaining = Math.max(
+      0,
+      100 -
+        circlesRef.current
+          .filter((circle) => circle.enabled)
+          .reduce((sum, circle) => sum + circle.percent, 0),
+    );
+    replaceCircles([
+      ...circlesRef.current,
       {
         id: `c-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         label: `Custom ${customCount + 1}`,
-        percent: 20,
+        percent: remaining >= MIN_ALLOCATION ? Math.min(20, remaining) : 20,
         x: 0.5,
         y: 0.5,
-        enabled: true,
+        enabled: remaining >= MIN_ALLOCATION,
         color,
         custom: true,
       },
@@ -104,75 +160,43 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
 
   const onPointerDown = (e: React.PointerEvent, c: DomainCircle) => {
     e.preventDefault();
-    (e.target as Element).setPointerCapture?.(e.pointerId);
+    e.stopPropagation();
+    if (dragRef.current && dragRef.current.pointerId !== e.pointerId) return;
+    canvasRef.current?.setPointerCapture?.(e.pointerId);
     setSelected(c.id);
-    pointersRef.current.set(e.pointerId, { id: c.id, x: e.clientX, y: e.clientY });
-
-    const circlePointers = [...pointersRef.current.values()].filter(
-      (pointer) => pointer.id === c.id,
-    );
-    if (circlePointers.length >= 2) {
-      const [first, second] = circlePointers;
-      pinchRef.current = {
-        id: c.id,
-        distance: Math.max(1, Math.hypot(second.x - first.x, second.y - first.y)),
-        percent: c.percent,
-      };
-      dragRef.current = null;
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const cx = c.x * rect.width;
-    const cy = c.y * rect.height;
     dragRef.current = {
       id: c.id,
-      dx: e.clientX - rect.left - cx,
-      dy: e.clientY - rect.top - cy,
+      pointerId: e.pointerId,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startX: c.x,
+      startY: c.y,
+      moved: false,
     };
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    const pointer = pointersRef.current.get(e.pointerId);
-    if (pointer) {
-      pointersRef.current.set(e.pointerId, { ...pointer, x: e.clientX, y: e.clientY });
-    }
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    e.preventDefault();
+    const deltaX = e.clientX - drag.startClientX;
+    const deltaY = e.clientY - drag.startClientY;
+    if (!drag.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD_PX) return;
+    drag.moved = true;
 
-    if (pinchRef.current) {
-      const pinch = pinchRef.current;
-      const circlePointers = [...pointersRef.current.values()].filter(
-        (activePointer) => activePointer.id === pinch.id,
-      );
-      if (circlePointers.length >= 2) {
-        const [first, second] = circlePointers;
-        const distance = Math.hypot(second.x - first.x, second.y - first.y);
-        const scale = distance / pinch.distance;
-        update(pinch.id, { percent: Math.round(clamp(pinch.percent * scale * scale, 0, 100)) });
-      }
-      return;
-    }
-
-    if (!dragRef.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left - dragRef.current.dx) / rect.width;
-    const y = (e.clientY - rect.top - dragRef.current.dy) / rect.height;
-    update(dragRef.current.id, {
-      x: Math.max(0.05, Math.min(0.95, x)),
-      y: Math.max(0.05, Math.min(0.95, y)),
+    update(drag.id, {
+      x: clamp(drag.startX + deltaX / rect.width, 0.05, 0.95),
+      y: clamp(drag.startY + deltaY / rect.height, 0.05, 0.95),
     });
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
-    pointersRef.current.delete(e.pointerId);
-    if (pinchRef.current) {
-      const remaining = [...pointersRef.current.values()].filter(
-        (pointer) => pointer.id === pinchRef.current?.id,
-      );
-      if (remaining.length < 2) pinchRef.current = null;
+    if (dragRef.current?.pointerId !== e.pointerId) return;
+    if (canvasRef.current?.hasPointerCapture?.(e.pointerId)) {
+      canvasRef.current.releasePointerCapture(e.pointerId);
     }
     dragRef.current = null;
   };
@@ -184,14 +208,18 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
     <div className="space-y-4">
       <div
         ref={canvasRef}
+        onPointerDown={(event) => {
+          if (event.target === event.currentTarget) setSelected(null);
+        }}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onLostPointerCapture={onPointerUp}
         className="relative w-full rounded-2xl border border-border bg-card/60 venn-bg overflow-hidden touch-none select-none"
         style={{ aspectRatio: "1 / 1", maxHeight: compact ? 380 : 560 }}
       >
         <p className="absolute bottom-2 left-0 right-0 z-30 text-center text-[11px] text-muted-foreground pointer-events-none">
-          Drag to move · pinch with two fingers to resize
+          Drag to show closeness · use the controls below to set each share
         </p>
         {showYou && (
           <>
@@ -222,12 +250,10 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
             const cx = c.x * size;
             const cy = c.y * size;
             const isSel = selected === c.id;
-            const overlap = showYou ? circleIntersectionPercent(cx, cy, r, size / 2, youR) : null;
             return (
               <div
                 key={c.id}
                 onPointerDown={(e) => onPointerDown(e, c)}
-                onClick={() => setSelected(c.id)}
                 className="absolute rounded-full flex items-center justify-center text-center cursor-grab active:cursor-grabbing transition-shadow"
                 style={{
                   width: r * 2,
@@ -238,13 +264,14 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
                   border: `1.5px solid ${c.color}`,
                   boxShadow: isSel ? `0 0 0 2px ${c.color}` : "none",
                   mixBlendMode: "multiply",
+                  zIndex: isSel ? 10 : 1,
                 }}
               >
                 <span
                   className="px-2 text-[11px] md:text-xs font-medium text-foreground/85 pointer-events-none"
                   style={{ maxWidth: r * 1.7 }}
                 >
-                  {showYou ? `${c.label} · ${overlap}%` : c.label}
+                  {showYou ? `${c.label} · ${Math.round(c.percent)}%` : c.label}
                 </span>
               </div>
             );
@@ -254,6 +281,32 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
             Turn a domain on below to place its circle.
           </div>
         )}
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card/60 p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">Share of time and energy</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Circle size shows allocation. Position only shows closeness to You.
+            </p>
+          </div>
+          <span className="shrink-0 font-mono text-sm text-foreground">
+            {Math.round(allocatedTotal)}% / 100%
+          </span>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-accent transition-[width]"
+            style={{ width: `${clamp(allocatedTotal, 0, 100)}%` }}
+          />
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {remainingAllocation > 0
+            ? `${Math.round(remainingAllocation)}% remains to allocate.`
+            : "All 100% has been allocated."}
+        </p>
+        {allocationNotice && <p className="mt-2 text-xs text-destructive">{allocationNotice}</p>}
       </div>
 
       <ul className="grid gap-2">
@@ -266,7 +319,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
           >
             <div className="flex items-center gap-3">
               <button
-                onClick={() => update(c.id, { enabled: !c.enabled })}
+                onClick={() => toggleCircle(c)}
                 aria-label={c.enabled ? `Hide ${c.label}` : `Show ${c.label}`}
                 className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
                   c.enabled ? "bg-primary" : "bg-muted"
@@ -315,17 +368,45 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
                 </button>
               )}
             </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={c.percent}
-              disabled={!c.enabled}
-              onChange={(e) => update(c.id, { percent: parseInt(e.target.value, 10) })}
-              className="mt-2 w-full accent-[var(--accent)]"
-              aria-label={`Size of ${c.label}`}
-            />
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                type="button"
+                disabled={!c.enabled || c.percent <= MIN_ALLOCATION}
+                onClick={() => updateAllocation(c.id, c.percent - ALLOCATION_STEP)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-lg text-foreground disabled:opacity-35"
+                aria-label={`Reduce ${c.label}`}
+              >
+                −
+              </button>
+              <div className="min-w-0 flex-1">
+                <label htmlFor={`${c.id}-allocation`} className="sr-only">
+                  Share of time and energy for {c.label}
+                </label>
+                <input
+                  id={`${c.id}-allocation`}
+                  type="range"
+                  min={MIN_ALLOCATION}
+                  max={maxAllocationFor(c.id)}
+                  step={1}
+                  value={c.percent}
+                  disabled={!c.enabled}
+                  onChange={(e) => updateAllocation(c.id, parseInt(e.target.value, 10))}
+                  className="w-full accent-[var(--accent)] disabled:opacity-35"
+                />
+                <p className="mt-1 text-center text-[11px] text-muted-foreground">
+                  Share of time and energy
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={!c.enabled || c.percent >= maxAllocationFor(c.id)}
+                onClick={() => updateAllocation(c.id, c.percent + ALLOCATION_STEP)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-lg text-foreground disabled:opacity-35"
+                aria-label={`Increase ${c.label}`}
+              >
+                +
+              </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -436,11 +517,7 @@ export function StaticDiagram({
               : radiusFor(c.percent, size);
             const cx = clamp(c.x * size, r + 2, size - r - 2);
             const cy = clamp(c.y * size, r + 2, size - r - 2);
-            let overlapLabel = "";
-            if (showYou) {
-              overlapLabel = ` · ${circleIntersectionPercent(cx, cy, r, size / 2, youR)}%`;
-            }
-            const text = `${c.label}${overlapLabel}`;
+            const text = showYou ? `${c.label} · ${Math.round(c.percent)}%` : c.label;
             const sz = getStaticLabelSize(text, size);
             const dx = cx - size / 2;
             const dy = cy - size / 2;
