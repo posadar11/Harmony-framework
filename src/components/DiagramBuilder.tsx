@@ -293,11 +293,15 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
           />
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          {Math.round(remainingCoverage)}% remains uncovered. The portions inside You total{" "}
-          {Math.round(grossAllocation)}%
-          {sharedAllocation >= 1
-            ? ` because approximately ${Math.round(sharedAllocation)}% is shared across domains.`
-            : "."}
+          <span className="font-medium text-foreground/80">
+            {Math.round(uniqueCoverage)}% is occupied by the people, responsibilities, and
+            activities shown.
+          </span>{" "}
+          The remaining {Math.round(remainingCoverage)}% is unoccupied personal time—time that is
+          entirely yours and is not spent with others, working, participating in community, or doing
+          a hobby.
+          {sharedAllocation >= 1 &&
+            ` Approximately ${Math.round(sharedAllocation)}% is shared across domains.`}
         </p>
       </div>
 
