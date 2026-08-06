@@ -38,6 +38,27 @@ const getInsights = createServerFn({ method: "POST" })
   .validator((data: { current: DomainCircle[]; ideal: DomainCircle[] }) => data)
   .handler(async ({ data }): Promise<Insights> => {
     const { current, ideal } = data;
+    const personalizedInsightsEnabled = process.env.ENABLE_PERSONALIZED_INSIGHTS === "true";
+
+    if (!personalizedInsightsEnabled) {
+      return {
+        summary:
+          "Your Current diagram shows where your time and energy are going today. Your Ideal is not a score to achieve; it is a way to notice what you want to protect, reduce, or choose more consciously. The distance between the two diagrams is useful information, not a failure.",
+        suggestions: [
+          "Notice the circle with the biggest difference between Current and Ideal; it may be the clearest place to begin.",
+          "Consider which circles grew through a conscious choice and which grew through habit, pressure, or an unspoken expectation.",
+          "Choose one small boundary, conversation, or repeated action that could move your Current one step toward your Ideal.",
+        ],
+        questions: [
+          "Which difference between your Current and Ideal feels most important to you, and why?",
+          "Where are you giving time or energy because you genuinely choose to, and where are you doing it mainly from obligation?",
+          "What part of your Current life is already working well and deserves to be protected?",
+          "Who might need to be part of a conversation before one of these circles can change?",
+          "What is the smallest realistic shift you could make during the next thirty days?",
+        ],
+      };
+    }
+
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
@@ -184,9 +205,16 @@ function JoinPage() {
     } catch (err) {
       setInsights({
         summary:
-          "We couldn't generate personalized insights right now, but your comparison is ready below.",
-        suggestions: [],
-        questions: [],
+          "Your Current diagram shows where your time and energy are going today. Your Ideal helps you notice what you want to protect, reduce, or choose more consciously.",
+        suggestions: [
+          "Notice the circle with the biggest difference between Current and Ideal; it may be the clearest place to begin.",
+          "Choose one small boundary, conversation, or repeated action that could move your Current one step toward your Ideal.",
+        ],
+        questions: [
+          "Which difference between your Current and Ideal feels most important to you, and why?",
+          "Where are you acting from genuine choice, and where are you acting mainly from obligation?",
+          "What is the smallest realistic shift you could make during the next thirty days?",
+        ],
       });
     } finally {
       setStep("results");
@@ -308,17 +336,44 @@ function JoinPage() {
 
               {insights && (
                 <div className="mt-6 rounded-2xl border border-border bg-card/70 p-5">
-                  <h3 className="font-serif text-lg text-foreground">Insights</h3>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-foreground/70">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        className="h-5 w-5"
+                        aria-hidden="true"
+                      >
+                        <rect x="5" y="10" width="14" height="10" rx="2" />
+                        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                      </svg>
+                    </span>
+                    <div>
+                      <h3 className="font-serif text-lg text-foreground">
+                        Personalized insights are coming soon
+                      </h3>
+                      <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                        Currently in development
+                      </p>
+                    </div>
+                  </div>
                   <p className="mt-2 text-sm text-foreground/80">{insights.summary}</p>
                   {insights.suggestions.length > 0 && (
-                    <ul className="mt-4 space-y-2">
-                      {insights.suggestions.map((s, i) => (
-                        <li key={i} className="text-sm text-foreground/80 flex gap-2">
-                          <span className="text-accent">•</span>
-                          <span>{s}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="mt-5">
+                      <h4 className="text-sm font-medium text-foreground/90">
+                        Thoughts to consider
+                      </h4>
+                      <ul className="mt-2 space-y-2">
+                        {insights.suggestions.map((s, i) => (
+                          <li key={i} className="text-sm text-foreground/80 flex gap-2">
+                            <span className="text-accent">•</span>
+                            <span>{s}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                   {insights.questions.length > 0 && (
                     <div className="mt-4">
