@@ -14,11 +14,11 @@ export interface SessionContent {
 export const intro = {
   headline: "The Harmony of Relationships",
   subheadline:
-    "A framework for relational balance, a way of seeing how you distribute yourself across every relationship in your life: work, close relationships, family, friends, hobbies, community, and yourself.",
+    "A framework for relational balance, a way of seeing how you distribute yourself across every relationship in your life, from work and colleagues to family, friends, communities, and yourself, and whether that distribution reflects what you actually choose.",
   description: [
-    "Most people experience their relationships as something that happens to them rather than something they actively shape. Work asks for more hours. Family calls more often. A friendship fades because no one has enough space for it. A partner, a roommate, a community group—each one pulls. Life fills up, and somewhere in that filling, the person at the center of all these relationships, the self, gets crowded out.",
+    "Most people experience their relationships as something that happens to them rather than something they actively shape. A manager asks for more hours. A teammate needs more support. A parent calls more often. A friendship fades because no one has enough space for it. A partner, a roommate, a community group, each one pulls. Life fills up, and somewhere in that filling, the person at the center of all these relationships, the self, gets crowded out.",
     "This framework proposes a different way of seeing. It begins with a simple but radical premise: the distribution of your time and energy across the relationships in your life is, in almost every case, a choice. Not always conscious. Not always free. But a choice nonetheless. When that choice becomes conscious, when you can see it clearly and name it honestly, you gain the ability to move toward a life that actually reflects your values, your needs, and your vision of who you want to be.",
-    "The central concept is relational balance, described visually through a Venn diagram. Every relationship is a circle: work, close relationships, family, friends, hobbies, community, and the self. The goal is not balance in the arithmetic sense, equal time for everyone, but harmony: an ongoing negotiation that distributes you across these relationships in a way that honors each of them and still leaves space for you. Harmony is not a destination. It is a practice.",
+    "The central concept is relational balance, described visually through a Venn diagram. Every relationship is a circle, a colleague, a manager, a team, the work itself, a friend, a family member, a partner if you have one, a community, a craft, the self. The goal is not balance in the arithmetic sense, equal time for everyone, but harmony: an ongoing negotiation that distributes you across these relationships in a way that honors each of them and still leaves space for you. Harmony is not a destination. It is a practice.",
     "That negotiation has never been more difficult, or more urgent. In 2023 the U.S. Surgeon General declared loneliness and isolation an epidemic. The WHO launched a Commission on Social Connection the same year, framing relational disconnection as a threat to health on par with obesity or tobacco. This work treats that moment not as background context, but as the reason it matters.",
   ],
 };
@@ -78,7 +78,7 @@ export const tracks = [
     title: "Track A, Work & Professional Life",
     question:
       "Have you made a conscious choice about how much space work gets, or has it simply taken the space it wanted?",
-    body: "This track is for people who sense their work circle has expanded beyond what they chose. It does not prescribe how much time work should take. Inside the work circle there are smaller relationships worth naming: the people you work with, the roles you carry, and the work itself. Each can be renegotiated separately. Consider also the social dimensions of work, collegial relationships, ambient contact, which occupy their own space in the diagram. Hybrid and remote arrangements rearrange that space, sometimes invisibly. Decide for yourself what distribution you want, and then examine what adjustments, conversations, or commitments would be required to move toward it.",
+    body: "This track is for people who sense their work circle has expanded beyond what they chose. It does not prescribe how much time work should take. Inside the work circle there are smaller circles worth naming: your manager, your team, your peers, the people who report to you, and the work itself as its own relationship. Each can be renegotiated separately. Consider also the social dimensions of work, collegial relationships, ambient contact, which occupy their own space in the diagram. Hybrid and remote arrangements rearrange that space, sometimes invisibly. Decide for yourself what distribution you want, and then examine what adjustments, conversations, or commitments would be required to move toward it.",
   },
   {
     id: "B",
@@ -161,7 +161,7 @@ export const framework = {
     {
       heading: "The Relational Venn Diagram",
       paragraphs: [
-        "Picture a circle. That circle is you. Around it are other circles: work, close relationships, family, friends, hobbies, and community. Where your circle overlaps another, that overlap is the time and energy you give that relationship.",
+        "Picture a circle. That circle is you. Around it are other circles: a job, a manager, a partner, a friend, a family member, a hobby, a community. Where your circle overlaps another, that overlap is the time and energy you give that relationship.",
         "The space inside your circle that touches no one else is time with yourself. It is not empty, it is yours. When it disappears, the relationship that underpins every other one starts to thin.",
         "The goal is not equal time for everyone. It is harmony: different voices, different weights, all in service of something coherent and alive. Harmony is a practice, not a destination.",
       ],
@@ -177,7 +177,7 @@ export const framework = {
       heading: "Work",
       paragraphs: [
         "Work is the most accepted reason for a circle to quietly expand, and often the hardest one to see growing. Instead of work-life balance, the framework asks for harmony: work takes the space it genuinely needs, in conscious negotiation with the rest of the diagram.",
-        "Work is also not a single circle. The work itself can include different relationships and responsibilities that pull in their own way. Naming them separately is usually the first step toward changing them.",
+        "Work is also not a single circle. A manager, a team, peers, and the work itself each pull in their own way. Naming them separately is usually the first step toward changing them.",
       ],
     },
     {

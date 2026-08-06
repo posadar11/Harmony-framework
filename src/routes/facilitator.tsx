@@ -44,24 +44,15 @@ function FacilitatorPage() {
   const [presenting, setPresenting] = useState(false);
   const [slide, setSlide] = useState(0);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [joinUrl, setJoinUrl] = useState<string>("");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const url = `${window.location.origin}/join`;
-    (async () => {
-      try {
-        const dataUrl = await QRCode.toDataURL(url, {
-          width: 720,
-          margin: 2,
-          color: { dark: "#2b2a26", light: "#ffffff" },
-        });
-        setQrDataUrl(dataUrl);
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error("Failed to generate QR code for", url, err);
-        setQrDataUrl("");
-      }
-    })();
+    setJoinUrl(url);
+    QRCode.toDataURL(url, { width: 720, margin: 2, color: { dark: "#2b2a26", light: "#ffffff" } })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(""));
   }, []);
 
   // Sample diagrams used to illustrate the concept during presentation.
@@ -90,6 +81,18 @@ function FacilitatorPage() {
   const slides: Slide[] = [];
 
   // Set up the problem before introducing the framework.
+  slides.push({
+    kind: "stats",
+    session: 0,
+    title: "Burnout is a problem",
+    subtitle: "The data",
+    stats: [
+      { value: "55%", label: "of the US workforce is currently experiencing burnout, a six year high", source: "Eagle Hill Consulting, Nov 2025" },
+      { value: "72%", label: "of US employees face moderate to very high stress at work, a six year high", source: "Aflac WorkForces Report" },
+      { value: "67%", label: "report burnout symptoms at their current job, up from 52% in 2021", source: "Gallup, State of the Global Workplace" },
+      { value: "82%", label: "of employees are at risk of burnout", source: "Mercer Global Talent Trends" },
+    ],
+  });
   slides.push({
     kind: "statement",
     session: 0,
@@ -166,12 +169,11 @@ function FacilitatorPage() {
     body: "Write one sentence: what you will do, with whom, by when. Small enough to actually happen. Clear enough that you will know when it is done.",
   });
 
-  const visibleSlides = slides[0]?.kind === "stats" ? slides.slice(1) : slides;
 
   useEffect(() => {
     if (!presenting) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === " ") setSlide((i) => Math.min(visibleSlides.length - 1, i + 1));
+      if (e.key === "ArrowRight" || e.key === " ") setSlide((i) => Math.min(slides.length - 1, i + 1));
       else if (e.key === "ArrowLeft") setSlide((i) => Math.max(0, i - 1));
       else if (e.key === "Escape") {
         setPresenting(false);
@@ -180,7 +182,7 @@ function FacilitatorPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [presenting, visibleSlides.length]);
+  }, [presenting, slides.length]);
 
   const enterPresent = async () => {
     setSlide(0);
@@ -193,7 +195,7 @@ function FacilitatorPage() {
   };
 
   if (presenting) {
-    const s = visibleSlides[slide];
+    const s = slides[slide];
     return (
       <div className="fixed inset-0 z-50 bg-background venn-bg flex flex-col">
         <div className="flex items-center justify-between px-8 py-4 text-sm text-muted-foreground">
@@ -201,7 +203,7 @@ function FacilitatorPage() {
             {s.session > 0 ? `Session ${s.session} · ${s.kind}` : s.kind}
           </span>
           <span>
-            {slide + 1} / {visibleSlides.length}
+            {slide + 1} / {slides.length}
           </span>
           <button
             onClick={() => {
@@ -251,6 +253,7 @@ function FacilitatorPage() {
                   </div>
                 )}
               </button>
+              <p className="mt-5 select-all font-mono text-sm text-muted-foreground break-all">{joinUrl}</p>
             </div>
           ) : s.kind === "stats" ? (
             <div className="w-full max-w-6xl">

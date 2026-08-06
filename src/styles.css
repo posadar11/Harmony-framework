@@ -98,6 +98,7 @@
   --circle-friends: oklch(0.72 0.08 150);
   --circle-work: oklch(0.6 0.07 280);
   --circle-hobbies: oklch(0.68 0.1 100);
+  --circle-other: oklch(0.7 0.07 320);
   --chart-1: var(--circle-partner);
   --chart-2: var(--circle-family);
   --chart-3: var(--circle-friends);

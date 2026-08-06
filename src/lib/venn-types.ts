@@ -1,10 +1,13 @@
 export type RelationshipType =
   | "work"
+  | "manager"
+  | "team"
   | "close"
   | "family"
   | "friends"
   | "hobbies"
-  | "community";
+  | "community"
+  | "other";
 
 export interface Circle {
   id: string;
@@ -25,20 +28,26 @@ export interface VennState {
 
 export const TYPE_COLORS: Record<RelationshipType, string> = {
   work: "var(--circle-work)",
+  manager: "var(--circle-work)",
+  team: "var(--circle-work)",
   close: "var(--circle-partner)",
   family: "var(--circle-family)",
   friends: "var(--circle-friends)",
   hobbies: "var(--circle-hobbies)",
   community: "var(--circle-friends)",
+  other: "var(--circle-other)",
 };
 
 export const TYPE_LABELS: Record<RelationshipType, string> = {
   work: "Work",
-  close: "Close relationships",
+  manager: "Manager",
+  team: "Team / colleagues",
+  close: "Close relationship",
   family: "Family",
   friends: "Friends",
   hobbies: "Hobbies",
   community: "Community",
+  other: "Other",
 };
 
 export const DEFAULT_VENN: VennState = {

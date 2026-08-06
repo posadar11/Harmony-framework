@@ -36,22 +36,9 @@ function DiagramPresenter() {
     if (typeof window === "undefined") return;
     const url = `${window.location.origin}/join`;
     setJoinUrl(url);
-    (async () => {
-      try {
-        const dataUrl = await QRCode.toDataURL(url, {
-          width: 720,
-          margin: 2,
-          color: { dark: "#2b2a26", light: "#ffffff" },
-        });
-        setQrDataUrl(dataUrl);
-      } catch (err) {
-        // expose error for easier debugging in the browser console
-        // and avoid silently showing an empty placeholder
-        // eslint-disable-next-line no-console
-        console.error("Failed to generate QR code for", url, err);
-        setQrDataUrl("");
-      }
-    })();
+    QRCode.toDataURL(url, { width: 720, margin: 2, color: { dark: "#2b2a26", light: "#ffffff" } })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(""));
   }, []);
 
   const steps = ["Intro", "Current", "Ideal", "Submit"];
@@ -211,8 +198,8 @@ function BuilderSlide({
 
       {compare && currentForCompare ? (
         <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <StaticDiagram title="Ideal" circles={circles} showYou />
           <StaticDiagram title="Current" circles={currentForCompare} showYou />
+          <StaticDiagram title="Ideal" circles={circles} showYou />
         </div>
       ) : (
         <div className="mt-6">
@@ -242,7 +229,7 @@ function SubmitSlide({ qrDataUrl, joinUrl }: { qrDataUrl: string; joinUrl: strin
           </div>
         )}
       </div>
-      {/* joinUrl intentionally not displayed to avoid leaking localhost in public demos */}
+      <p className="mt-5 select-all font-mono text-sm text-muted-foreground break-all">{joinUrl}</p>
     </section>
   );
 }

@@ -42,18 +42,6 @@ export function VennDiagram({ storageKey = "hor.venn", compact = false }: Props)
   const [mode, setMode] = useState<"current" | "ideal">("current");
   const [compare, setCompare] = useState(false);
 
-  // Sanitize loaded state: remove circles with types that no longer exist in TYPE_LABELS
-  useEffect(() => {
-    const allowed = new Set(Object.keys(TYPE_LABELS));
-    const sanitize = (arr: Circle[]) => arr.filter((c) => allowed.has(c.type));
-    const currentSan = sanitize(state.current);
-    const idealSan = sanitize(state.ideal);
-    if (currentSan.length !== state.current.length || idealSan.length !== state.ideal.length) {
-      setState((s) => ({ ...s, current: currentSan, ideal: idealSan }));
-    }
-    // Only run once on mount — eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const setCircles = (next: Circle[]) =>
     setState((s) => ({ ...s, [mode]: next }));
 
@@ -97,8 +85,8 @@ export function VennDiagram({ storageKey = "hor.venn", compact = false }: Props)
 
       {compare && !compact ? (
         <div className="grid gap-6 md:grid-cols-2">
-          <StaticVenn title="Ideal" circles={state.ideal} />
           <StaticVenn title="Current" circles={state.current} />
+          <StaticVenn title="Ideal" circles={state.ideal} />
         </div>
       ) : (
         <div className="rounded-2xl border border-border bg-card/60 p-4 venn-bg">
@@ -127,7 +115,7 @@ export function VennDiagram({ storageKey = "hor.venn", compact = false }: Props)
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             Drag a circle toward the <strong>You</strong> circle to show how much of you it gets.
-            Drag circles into each other to show which relationships are <em>intertwined</em> (e.g. work and family overlapping, or friends and hobbies). Use the <strong>Size</strong> slider to show how much time and energy that circle takes up. Click a label to rename. Saved automatically.
+            Drag circles into each other to show which relationships are <em>intertwined</em> (e.g. a colleague who is also a close friend). Use the <strong>Size</strong> slider to show how much time and energy that circle takes up. Click a label to rename. Saved automatically.
           </p>
         </div>
       )}
