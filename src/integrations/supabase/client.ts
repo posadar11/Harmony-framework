@@ -29,11 +29,25 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+function normalizeSupabaseUrl(value: string | undefined): string | undefined {
+  const cleaned = value?.trim().replace(/^['"]|['"]$/g, "");
+  if (!cleaned) return undefined;
+  if (/^[a-z0-9]{15,30}$/i.test(cleaned)) return `https://${cleaned}.supabase.co`;
+  try {
+    const parsed = new URL(cleaned);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering)
   const serverEnvironment = typeof process !== "undefined" ? process.env : undefined;
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || serverEnvironment?.SUPABASE_URL;
+  const SUPABASE_URL =
+    normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL) ||
+    normalizeSupabaseUrl(serverEnvironment?.SUPABASE_URL);
   const SUPABASE_PUBLISHABLE_KEY =
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || serverEnvironment?.SUPABASE_PUBLISHABLE_KEY;
 
@@ -62,7 +76,8 @@ function createSupabaseClient() {
 export function isSupabaseConfigured() {
   const serverEnvironment = typeof process !== "undefined" ? process.env : undefined;
   return Boolean(
-    (import.meta.env.VITE_SUPABASE_URL || serverEnvironment?.SUPABASE_URL) &&
+    (normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL) ||
+      normalizeSupabaseUrl(serverEnvironment?.SUPABASE_URL)) &&
     (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || serverEnvironment?.SUPABASE_PUBLISHABLE_KEY),
   );
 }

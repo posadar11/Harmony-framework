@@ -190,15 +190,25 @@ function JoinPage() {
   const handleGetInsights = async () => {
     setStep("loading");
     try {
-      const { error: saveError } = await supabase.from("diagram_submissions").insert({
-        name: name.trim() || null,
-        email: email.trim() || null,
-        current_diagram: JSON.parse(JSON.stringify(current)),
-        ideal_diagram: JSON.parse(JSON.stringify(ideal)),
-      });
-      if (saveError) throw saveError;
-      setSaved(true);
       await broadcastSubmission(room, { current, ideal });
+
+      try {
+        const { error: saveError } = await supabase.from("diagram_submissions").insert({
+          name: name.trim() || null,
+          email: null,
+          current_diagram: JSON.parse(JSON.stringify(current)),
+          ideal_diagram: JSON.parse(JSON.stringify(ideal)),
+        });
+        if (saveError) throw saveError;
+        setSaved(true);
+        setError(null);
+      } catch (storageError) {
+        console.error("[submission] Supabase storage failed", storageError);
+        setSaved(false);
+        setError(
+          "Your diagram joined the live room, but permanent storage is not ready yet. The facilitator can still see the room average.",
+        );
+      }
 
       const result = await getInsights({ data: { current, ideal } });
       setInsights(result);
