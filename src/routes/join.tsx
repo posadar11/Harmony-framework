@@ -368,7 +368,6 @@ function JoinPage() {
                       </p>
                     </div>
                   </div>
-                  <p className="mt-2 text-sm text-foreground/80">{insights.summary}</p>
                   {insights.suggestions.length > 0 && (
                     <div className="mt-5">
                       <h4 className="text-sm font-medium text-foreground/90">
