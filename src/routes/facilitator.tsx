@@ -82,18 +82,6 @@ function FacilitatorPage() {
 
   // Set up the problem before introducing the framework.
   slides.push({
-    kind: "stats",
-    session: 0,
-    title: "Burnout is a problem",
-    subtitle: "The data",
-    stats: [
-      { value: "55%", label: "of the US workforce is currently experiencing burnout, a six year high", source: "Eagle Hill Consulting, Nov 2025" },
-      { value: "72%", label: "of US employees face moderate to very high stress at work, a six year high", source: "Aflac WorkForces Report" },
-      { value: "67%", label: "report burnout symptoms at their current job, up from 52% in 2021", source: "Gallup, State of the Global Workplace" },
-      { value: "82%", label: "of employees are at risk of burnout", source: "Mercer Global Talent Trends" },
-    ],
-  });
-  slides.push({
     kind: "statement",
     session: 0,
     title: "Work-life balance does not exist",

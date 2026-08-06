@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Circle, RelationshipType, VennState } from "@/lib/venn-types";
-import { TYPE_COLORS, TYPE_LABELS, makeCircle } from "@/lib/venn-types";
+import { RELATIONSHIP_TYPES, TYPE_COLORS, TYPE_LABELS, isRelationshipType, makeCircle } from "@/lib/venn-types";
 import { useLocalStorage } from "@/lib/storage";
 
 const SIZE = 520;
@@ -41,6 +41,17 @@ export function VennDiagram({ storageKey = "hor.venn", compact = false }: Props)
   const [state, setState] = useLocalStorage<VennState>(storageKey, { current: [], ideal: [] });
   const [mode, setMode] = useState<"current" | "ideal">("current");
   const [compare, setCompare] = useState(false);
+
+  // Remove categories saved by older versions of the diagram.
+  useEffect(() => {
+    setState((saved) => {
+      const current = saved.current.filter((circle) => isRelationshipType(circle.type));
+      const ideal = saved.ideal.filter((circle) => isRelationshipType(circle.type));
+      return current.length === saved.current.length && ideal.length === saved.ideal.length
+        ? saved
+        : { current, ideal };
+    });
+  }, [setState]);
 
   const setCircles = (next: Circle[]) =>
     setState((s) => ({ ...s, [mode]: next }));
@@ -102,7 +113,7 @@ export function VennDiagram({ storageKey = "hor.venn", compact = false }: Props)
         <div className="rounded-xl border border-border bg-card/60 p-4">
           <p className="text-sm font-medium text-foreground mb-2">Add a circle</p>
           <div className="flex flex-wrap gap-2">
-            {(Object.keys(TYPE_LABELS) as RelationshipType[]).map((t) => (
+            {RELATIONSHIP_TYPES.map((t) => (
               <button
                 key={t}
                 onClick={() => addCircle(t)}
@@ -115,7 +126,7 @@ export function VennDiagram({ storageKey = "hor.venn", compact = false }: Props)
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
             Drag a circle toward the <strong>You</strong> circle to show how much of you it gets.
-            Drag circles into each other to show which relationships are <em>intertwined</em> (e.g. a colleague who is also a close friend). Use the <strong>Size</strong> slider to show how much time and energy that circle takes up. Click a label to rename. Saved automatically.
+            Drag circles into each other to show which areas of life are <em>intertwined</em>. Use the <strong>Size</strong> slider to show how much time and energy that circle takes up. Click a label to rename. Saved automatically.
           </p>
         </div>
       )}

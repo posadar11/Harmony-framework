@@ -95,13 +95,12 @@
   --circle-self: oklch(0.65 0.09 250);
   --circle-partner: oklch(0.7 0.11 25);
   --circle-family: oklch(0.72 0.09 60);
-  --circle-friends: oklch(0.72 0.08 150);
+  --circle-community: oklch(0.72 0.08 150);
   --circle-work: oklch(0.6 0.07 280);
   --circle-hobbies: oklch(0.68 0.1 100);
-  --circle-other: oklch(0.7 0.07 320);
   --chart-1: var(--circle-partner);
   --chart-2: var(--circle-family);
-  --chart-3: var(--circle-friends);
+  --chart-3: var(--circle-community);
   --chart-4: var(--circle-work);
   --chart-5: var(--circle-hobbies);
   --sidebar: oklch(0.97 0.012 80);
