@@ -35,13 +35,7 @@ const getInsights = createServerFn({ method: "POST" })
     const { current, ideal } = data;
     const apiKey = process.env.OPENAI_API_KEY;
 
-    const describe = (circles: DomainCircle[]) =>
-      circles
-        .filter((c) => c.enabled)
-        .map((c) => `${c.label}: ${Math.round(c.percent)}%`)
-        .join(", ");
-
-    if (!apiKey) {
+        if (!apiKey) {
       return {
         summary:
           "Insights aren't turned on yet. Add an OPENAI_API_KEY environment variable on the server to enable AI-generated insights.",
@@ -49,14 +43,60 @@ const getInsights = createServerFn({ method: "POST" })
       };
     }
 
-    const prompt = `You are a warm, encouraging life-balance coach reviewing someone's self-assessment.
+    const idealByLabel = new Map(
+      ideal.filter((c) => c.enabled).map((c) => [c.label, Math.round(c.percent)]),
+    );
+    const currentByLabel = new Map(
+      current.filter((c) => c.enabled).map((c) => [c.label, Math.round(c.percent)]),
+    );
+    const labels = Array.from(new Set([...currentByLabel.keys(), ...idealByLabel.keys()]));
 
-They mapped how their time and energy is distributed across life domains today ("Current"), and how they wish it were distributed ("Ideal"). Each domain has a relative percentage.
+    const rows = labels
+      .map((label) => {
+        const cur = currentByLabel.get(label) ?? 0;
+        const ide = idealByLabel.get(label) ?? 0;
+        return { label, cur, ide, gap: ide - cur };
+      })
+      .sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap));
 
-Current: ${describe(current)}
-Ideal: ${describe(ideal)}
+    const table = rows
+      .map((r) => {
+        if (r.gap === 0) return `${r.label}: current ${r.cur}%, ideal ${r.ide}% (no gap)`;
+        const direction = r.gap > 0 ? `wants ${r.gap} pts MORE` : `wants ${Math.abs(r.gap)} pts LESS`;
+        return `${r.label}: current ${r.cur}%, ideal ${r.ide}% (${direction})`;
+      })
+      .join("\n");
 
-In 2-3 short sentences, summarize the biggest gaps between Current and Ideal. Then give exactly 3 short, concrete, actionable suggestions (one sentence each) for closing the gap. Respond ONLY with JSON in this shape: {"summary": string, "suggestions": string[]}`;
+    const gappedRows = rows.filter((r) => r.gap !== 0);
+    const allAligned = gappedRows.length === 0;
+    const biggestGaps = gappedRows.slice(0, 2).map((r) => r.label);
+
+    const prompt = `You are a sharp, perceptive life-balance coach. Avoid generic, boilerplate advice - be specific to these exact numbers.
+A person rated how they currently spend their time and energy across life domains ("current") versus how they wish it were spent ("ideal"), as percentages of a whole.
+
+${table}
+
+${
+  allAligned
+    ? "Every domain matches between current and ideal - there is no numeric gap anywhere."
+    : `The largest gaps are in: ${biggestGaps.join(" and ")}.`
+}
+
+Write a specific, perceptive 3-4 sentence summary. ${
+  allAligned
+    ? "Since there's no gap, don't invent one - instead comment on what an evenly-matched split like this really takes to sustain in a busy life, and gently question whether a perfectly even split might itself hide trade-offs worth noticing."
+    : "Name the domain(s) with the biggest gap explicitly, state the size of the gap in points, and speculate concretely on a plausible real reason for that imbalance (for example a demanding work season, caregiving, or a recent life change) and the trade-off it likely forces."
+} Avoid vague phrases like "seek balance" or "room for growth" - write as if you actually studied these exact numbers.
+
+Then give exactly 4 suggestions. Each must be one sentence, name a specific domain from the list above, ${
+  allAligned ? "" : "reference its actual point gap, "
+}and describe one concrete action to try this week (a specific time block, a boundary to set, a habit, or a conversation to have) rather than generic encouragement. ${
+  allAligned
+    ? "Since there's no gap to close, make the suggestions about protecting and deepening the domains that matter most, and about periodically re-checking whether the split still feels right in practice."
+    : ""
+}
+
+Respond ONLY with JSON in this exact shape: {"summary": string, "suggestions": string[]}`;
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -68,7 +108,8 @@ In 2-3 short sentences, summarize the biggest gaps between Current and Ideal. Th
         body: JSON.stringify({
           model: "gpt-4o-mini",
           messages: [{ role: "user", content: prompt }],
-          temperature: 0.7,
+          temperature: 0.85,
+          max_tokens: 700,
           response_format: { type: "json_object" },
         }),
       });
