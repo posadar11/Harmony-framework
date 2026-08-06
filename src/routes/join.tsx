@@ -223,6 +223,25 @@ function JoinPage() {
 
   const handleFinish = async () => {
     if (saved) {
+      if (email.trim()) {
+        setSubmitting(true);
+        setError(null);
+        try {
+          const { error: contactError } = await supabase.from("diagram_submissions").insert({
+            name: name.trim() || null,
+            email: email.trim(),
+            current_diagram: [],
+            ideal_diagram: [],
+          });
+          if (contactError) throw contactError;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Something went wrong.";
+          setError(msg);
+          setSubmitting(false);
+          return;
+        }
+        setSubmitting(false);
+      }
       setDone(true);
       return;
     }
@@ -271,16 +290,6 @@ function JoinPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Alex"
-              className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-base outline-none focus:border-accent"
-            />
-            <label className="mt-4 block text-sm font-medium text-foreground">
-              Your email <span className="text-muted-foreground font-normal">(optional)</span>
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
               className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-base outline-none focus:border-accent"
             />
           </div>
@@ -407,8 +416,17 @@ function JoinPage() {
                       Thank you for completing this.
                     </p>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      Your diagrams were added to the room average when you pressed Submit.
+                      Your diagrams were added to the room average when you pressed Submit. If you
+                      would like something curated for you or updates about future developments,
+                      leave your email below.
                     </p>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com (optional)"
+                      className="mt-4 w-full rounded-xl border border-border bg-background px-4 py-3 outline-none focus:border-accent"
+                    />
                     {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
                     <button
                       onClick={handleFinish}
