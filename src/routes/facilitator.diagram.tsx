@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { DiagramBuilder, StaticDiagram } from "@/components/DiagramBuilder";
 import { makeStartingDiagram, type DomainCircle } from "@/lib/diagram-types";
+import { createRoomCode } from "@/lib/live-room";
 
 export const Route = createFileRoute("/facilitator/diagram")({
   head: () => ({
@@ -25,15 +26,22 @@ export const Route = createFileRoute("/facilitator/diagram")({
 
 function DiagramPresenter() {
   const [step, setStep] = useState(0);
-  const makeExerciseDiagram = () => makeStartingDiagram([]).filter((circle) => circle.label !== "Time for myself");
+  const makeExerciseDiagram = () =>
+    makeStartingDiagram([]).filter((circle) => circle.label !== "Time for myself");
   const [current, setCurrent] = useState<DomainCircle[]>(makeExerciseDiagram);
   const [ideal, setIdeal] = useState<DomainCircle[]>(makeExerciseDiagram);
   const [compare, setCompare] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [joinUrl, setJoinUrl] = useState<string>("");
+  const [roomCode, setRoomCode] = useState("");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const savedRoom = window.localStorage.getItem("hor.facilitator.room");
+    const room = savedRoom || createRoomCode();
+    window.localStorage.setItem("hor.facilitator.room", room);
+    setRoomCode(room);
+
     const url = `${window.location.origin}/join`;
     setJoinUrl(url);
     QRCode.toDataURL(url, { width: 720, margin: 2, color: { dark: "#2b2a26", light: "#ffffff" } })
@@ -103,7 +111,7 @@ function DiagramPresenter() {
             currentForCompare={current}
           />
         )}
-        {step === 3 && <SubmitSlide qrDataUrl={qrDataUrl} joinUrl={joinUrl} />}
+        {step === 3 && <SubmitSlide qrDataUrl={qrDataUrl} joinUrl={joinUrl} roomCode={roomCode} />}
       </main>
 
       <footer className="flex items-center justify-between border-t border-border/60 px-6 py-4">
@@ -139,8 +147,8 @@ function IntroSlide({ onStart }: { onStart: () => void }) {
       </p>
       <div className="mt-8 grid gap-3 text-left text-foreground/80 max-w-xl">
         <p>
-          <span className="font-medium text-foreground">Each life domain is a circle.</span> Its size
-          shows how much of your time it takes.
+          <span className="font-medium text-foreground">Each life domain is a circle.</span> Its
+          size shows how much of your time it takes.
         </p>
         <p>
           <span className="font-medium text-foreground">Overlaps are shared time,</span> the places
@@ -210,7 +218,15 @@ function BuilderSlide({
   );
 }
 
-function SubmitSlide({ qrDataUrl, joinUrl }: { qrDataUrl: string; joinUrl: string }) {
+function SubmitSlide({
+  qrDataUrl,
+  joinUrl,
+  roomCode,
+}: {
+  qrDataUrl: string;
+  joinUrl: string;
+  roomCode: string;
+}) {
   return (
     <section className="mx-auto flex min-h-full max-w-4xl flex-col items-center justify-center px-8 py-12 text-center">
       <p className="text-xs uppercase tracking-[0.25em] text-accent">Your turn</p>
@@ -218,18 +234,39 @@ function SubmitSlide({ qrDataUrl, joinUrl }: { qrDataUrl: string; joinUrl: strin
         Build your own diagram
       </h2>
       <p className="mt-4 max-w-xl text-foreground/80">
-        Scan the code, build your Current and Ideal, then submit to join the waitlist.
+        Scan the permanent code, enter the room code below, then build your Current and Ideal.
       </p>
       <div className="mt-8 rounded-3xl border border-border bg-white p-6 shadow-sm">
         {qrDataUrl ? (
-          <img src={qrDataUrl} alt="Scan to open the participant form" className="h-72 w-72 md:h-96 md:w-96" />
+          <img
+            src={qrDataUrl}
+            alt="Scan to open the participant form"
+            className="h-72 w-72 md:h-96 md:w-96"
+          />
         ) : (
           <div className="h-72 w-72 md:h-96 md:w-96 flex items-center justify-center text-muted-foreground">
             Generating QR…
           </div>
         )}
       </div>
+      <div className="mt-5 rounded-2xl border border-accent/40 bg-card/70 px-6 py-4">
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          Enter this room code
+        </p>
+        <p className="mt-2 font-mono text-4xl font-semibold tracking-[0.2em] text-foreground">
+          {roomCode}
+        </p>
+      </div>
       <p className="mt-5 select-all font-mono text-sm text-muted-foreground break-all">{joinUrl}</p>
+      {qrDataUrl && (
+        <a
+          href={qrDataUrl}
+          download="harmony-permanent-qr.png"
+          className="mt-4 rounded-full border border-border px-5 py-2 text-sm text-foreground/80 hover:border-accent"
+        >
+          Download QR for PowerPoint
+        </a>
+      )}
     </section>
   );
 }

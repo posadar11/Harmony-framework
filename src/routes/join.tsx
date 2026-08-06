@@ -1,14 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { DiagramBuilder, StaticDiagram } from "@/components/DiagramBuilder";
 import { makeStartingDiagram, type DomainCircle } from "@/lib/diagram-types";
 import { supabase } from "@/integrations/supabase/client";
 import { broadcastSubmission } from "@/lib/live-room";
 
+function normalizeRoomCode(value: unknown): string {
+  return typeof value === "string"
+    ? value
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+        .slice(0, 8)
+    : "";
+}
+
 export const Route = createFileRoute("/join")({
   validateSearch: (search: Record<string, unknown>) => ({
-    room: typeof search.room === "string" ? search.room.slice(0, 24) : "",
+    room: normalizeRoomCode(search.room),
   }),
   head: () => ({
     meta: [
@@ -195,6 +204,73 @@ type Step = "ideal" | "current" | "loading" | "results";
 
 function JoinPage() {
   const { room } = Route.useSearch();
+  return room ? <ExercisePage room={room} /> : <RoomCodeEntry />;
+}
+
+function RoomCodeEntry() {
+  const [roomInput, setRoomInput] = useState("");
+  const [roomError, setRoomError] = useState("");
+
+  const connectToRoom = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const room = normalizeRoomCode(roomInput);
+    if (room.length !== 8) {
+      setRoomError("Enter the eight-character room code shown by your facilitator.");
+      return;
+    }
+    window.location.assign(`/join?room=${encodeURIComponent(room)}`);
+  };
+
+  return (
+    <div className="min-h-screen bg-background venn-bg">
+      <main className="mx-auto flex min-h-screen max-w-lg items-center px-4 py-10">
+        <section className="w-full rounded-3xl border border-border bg-card/80 p-6 text-center shadow-sm md:p-9">
+          <p className="text-xs uppercase tracking-[0.2em] text-accent">The Diagram</p>
+          <h1 className="mt-3 font-serif text-3xl text-foreground md:text-4xl">
+            Join your workshop room
+          </h1>
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground md:text-base">
+            Enter the room code displayed by your facilitator. The same QR code works for every
+            workshop.
+          </p>
+
+          <form onSubmit={connectToRoom} className="mt-7">
+            <label
+              htmlFor="room-code"
+              className="block text-left text-sm font-medium text-foreground"
+            >
+              Room code
+            </label>
+            <input
+              id="room-code"
+              type="text"
+              value={roomInput}
+              onChange={(event) => {
+                setRoomInput(normalizeRoomCode(event.target.value));
+                setRoomError("");
+              }}
+              autoComplete="off"
+              autoCapitalize="characters"
+              inputMode="text"
+              maxLength={8}
+              placeholder="AB12CD34"
+              className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-4 text-center font-mono text-2xl uppercase tracking-[0.2em] outline-none focus:border-accent"
+            />
+            {roomError && <p className="mt-3 text-sm text-destructive">{roomError}</p>}
+            <button
+              type="submit"
+              className="mt-5 w-full rounded-full bg-primary py-3.5 text-base font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Join room
+            </button>
+          </form>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function ExercisePage({ room }: { room: string }) {
   const [name, setName] = useState("");
   const [step, setStep] = useState<Step>("ideal");
 
@@ -325,13 +401,6 @@ function JoinPage() {
             </p>
           )}
         </header>
-
-        {!room && (step === "ideal" || step === "current") && (
-          <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground/80">
-            This link is not connected to a facilitator room. Scan the QR code shown in Facilitator
-            Mode if your response should appear in the room average.
-          </div>
-        )}
 
         {(step === "ideal" || step === "current") && (
           <div className="mt-6 rounded-2xl border border-border bg-card/70 p-4">

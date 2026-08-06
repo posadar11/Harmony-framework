@@ -92,13 +92,12 @@ function FacilitatorPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!roomCode) return;
-    const url = `${window.location.origin}/join?room=${encodeURIComponent(roomCode)}&v=${Date.now()}`;
+    const url = `${window.location.origin}/join`;
     setJoinUrl(url);
     QRCode.toDataURL(url, { width: 720, margin: 2, color: { dark: "#2b2a26", light: "#ffffff" } })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(""));
-  }, [roomCode]);
+  }, []);
 
   useEffect(() => {
     if (!roomCode || typeof window === "undefined") return;
@@ -256,7 +255,7 @@ function FacilitatorPage() {
     session: 0,
     title: "Build your own diagram",
     subtitle: "Your turn",
-    body: "Scan the code to open the exercise. Click the code to jump straight there.",
+    body: "Scan the permanent code, then enter the room code shown below.",
   });
 
   // Four focused prompt slides: Current aspects, Ideal aspects,
@@ -392,7 +391,14 @@ function FacilitatorPage() {
                       </div>
                     )}
                   </button>
-                  <p className="mt-4 font-mono text-sm text-muted-foreground">Room {roomCode}</p>
+                  <div className="mx-auto mt-5 max-w-md rounded-2xl border border-accent/40 bg-card/70 px-6 py-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                      Enter this room code
+                    </p>
+                    <p className="mt-2 font-mono text-4xl font-semibold tracking-[0.2em] text-foreground">
+                      {roomCode}
+                    </p>
+                  </div>
                   <p className="mt-2 select-all font-mono text-xs text-muted-foreground break-all">
                     {joinUrl}
                   </p>
@@ -413,6 +419,15 @@ function FacilitatorPage() {
                 >
                   Start a new room
                 </button>
+                {qrDataUrl && (
+                  <a
+                    href={qrDataUrl}
+                    download="harmony-permanent-qr.png"
+                    className="rounded-full border border-border px-5 py-2 text-foreground/80 hover:border-accent"
+                  >
+                    Download QR for PowerPoint
+                  </a>
+                )}
               </div>
               {liveConnectionError && (
                 <p className="mt-3 text-sm text-destructive">{liveConnectionError}</p>
