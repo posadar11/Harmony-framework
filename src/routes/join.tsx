@@ -4,8 +4,12 @@ import { useState } from "react";
 import { DiagramBuilder, StaticDiagram } from "@/components/DiagramBuilder";
 import { makeStartingDiagram, type DomainCircle } from "@/lib/diagram-types";
 import { supabase } from "@/integrations/supabase/client";
+import { broadcastSubmission } from "@/lib/live-room";
 
 export const Route = createFileRoute("/join")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    room: typeof search.room === "string" ? search.room.slice(0, 24) : "",
+  }),
   head: () => ({
     meta: [
       { title: "Build your diagram, The Harmony of Relationships" },
@@ -144,6 +148,7 @@ Also include exactly 3 reflective questions as "homework" - questions the person
 type Step = "ideal" | "current" | "loading" | "results";
 
 function JoinPage() {
+  const { room } = Route.useSearch();
   const [name, setName] = useState("");
   const [step, setStep] = useState<Step>("ideal");
 
@@ -158,11 +163,22 @@ function JoinPage() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleGetInsights = async () => {
     setStep("loading");
     try {
+      const { error: saveError } = await supabase.from("diagram_submissions").insert({
+        name: name.trim() || null,
+        email: email.trim() || null,
+        current_diagram: JSON.parse(JSON.stringify(current)),
+        ideal_diagram: JSON.parse(JSON.stringify(ideal)),
+      });
+      if (saveError) throw saveError;
+      setSaved(true);
+      await broadcastSubmission(room, { current, ideal });
+
       const result = await getInsights({ data: { current, ideal } });
       setInsights(result);
     } catch (err) {
@@ -178,6 +194,10 @@ function JoinPage() {
   };
 
   const handleFinish = async () => {
+    if (saved) {
+      setDone(true);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -223,6 +243,16 @@ function JoinPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Alex"
+              className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-base outline-none focus:border-accent"
+            />
+            <label className="mt-4 block text-sm font-medium text-foreground">
+              Your email <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
               className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-base outline-none focus:border-accent"
             />
           </div>
@@ -322,16 +352,8 @@ function JoinPage() {
                       Thank you for completing this.
                     </p>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      Want something curated for you, and to hear about future developments? Leave
-                      your email below.
+                      Your diagrams were added to the room average when you pressed Submit.
                     </p>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@example.com (optional)"
-                      className="mt-4 w-full rounded-xl border border-border bg-background px-4 py-3 outline-none focus:border-accent"
-                    />
                     {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
                     <button
                       onClick={handleFinish}

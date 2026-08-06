@@ -1,10 +1,12 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { facilitatorAgenda, tracks } from "@/content/workshop";
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { StaticDiagram } from "@/components/DiagramBuilder";
 import { type DomainCircle } from "@/lib/diagram-types";
+import { averageDiagram, createRoomCode, type RoomSubmission } from "@/lib/live-room";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/facilitator")({
   head: () => ({
@@ -31,51 +33,166 @@ type Slide =
   | { kind: "title"; session: number; title: string; subtitle: string; body: string }
   | { kind: "scenario"; session: number; title: string; subtitle: string; body: string }
   | { kind: "exercise"; session: number; title: string; subtitle: string; body: string }
-  | { kind: "diagram"; session: number; title: string; subtitle: string; body: string; circles: DomainCircle[]; compareCircles?: DomainCircle[] }
-  | { kind: "intro"; session: number; title: string; subtitle: string; body: string; chips: { label: string; color: string }[] }
+  | {
+      kind: "diagram";
+      session: number;
+      title: string;
+      subtitle: string;
+      body: string;
+      circles: DomainCircle[];
+      compareCircles?: DomainCircle[];
+    }
+  | {
+      kind: "intro";
+      session: number;
+      title: string;
+      subtitle: string;
+      body: string;
+      chips: { label: string; color: string }[];
+    }
   | { kind: "stats"; session: number; title: string; subtitle: string; stats: StatItem[] }
-  | { kind: "statement"; session: number; title: string; subtitle: string; body: string; highlights: Highlight[]; footnote: string }
-  | { kind: "framework"; session: number; title: string; subtitle: string; lead: string; emphasis: string; tail: string; parties: { label: string; note: string }[] }
+  | {
+      kind: "statement";
+      session: number;
+      title: string;
+      subtitle: string;
+      body: string;
+      highlights: Highlight[];
+      footnote: string;
+    }
+  | {
+      kind: "framework";
+      session: number;
+      title: string;
+      subtitle: string;
+      lead: string;
+      emphasis: string;
+      tail: string;
+      parties: { label: string; note: string }[];
+    }
   | { kind: "qr"; session: number; title: string; subtitle: string; body: string };
 
-
 function FacilitatorPage() {
-  const navigate = useNavigate();
   const [presenting, setPresenting] = useState(false);
   const [slide, setSlide] = useState(0);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [joinUrl, setJoinUrl] = useState<string>("");
+  const [roomCode, setRoomCode] = useState("");
+  const [roomSubmissions, setRoomSubmissions] = useState<RoomSubmission[]>([]);
+  const [showRoomAverage, setShowRoomAverage] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const url = `${window.location.origin}/join`;
+    const savedRoom = window.localStorage.getItem("hor.facilitator.room");
+    const room = savedRoom || createRoomCode();
+    window.localStorage.setItem("hor.facilitator.room", room);
+    setRoomCode(room);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!roomCode) return;
+    const url = `${window.location.origin}/join?room=${encodeURIComponent(roomCode)}`;
     setJoinUrl(url);
     QRCode.toDataURL(url, { width: 720, margin: 2, color: { dark: "#2b2a26", light: "#ffffff" } })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(""));
-  }, []);
+  }, [roomCode]);
+
+  useEffect(() => {
+    if (!roomCode || typeof window === "undefined") return;
+    const storageKey = `hor.room.${roomCode}`;
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      setRoomSubmissions(saved ? (JSON.parse(saved) as RoomSubmission[]) : []);
+    } catch {
+      setRoomSubmissions([]);
+    }
+
+    const channel = supabase
+      .channel(`harmony-room-${roomCode}`)
+      .on("broadcast", { event: "diagram-submitted" }, ({ payload }) => {
+        setRoomSubmissions((existing) => {
+          const next = [...existing, payload as RoomSubmission];
+          window.localStorage.setItem(storageKey, JSON.stringify(next));
+          return next;
+        });
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [roomCode]);
+
+  const startNewRoom = () => {
+    const room = createRoomCode();
+    window.localStorage.setItem("hor.facilitator.room", room);
+    setRoomCode(room);
+    setRoomSubmissions([]);
+    setShowRoomAverage(false);
+  };
 
   // Sample diagrams used to illustrate the concept during presentation.
   // Current: Work covers ~80% of You; other domains are small and isolated
   // (they don't overlap You or each other).
   const currentSample: DomainCircle[] = [
-    { id: "s-wk", label: "Work",                percent: 100, x: 0.56, y: 0.56, enabled: true, color: "#7BA7C5" },
-    { id: "s-cr", label: "Close relationships", percent: 22,  x: 0.76, y: 0.26, enabled: true, color: "#C58F8F" },
-    { id: "s-fm", label: "Family",              percent: 22,  x: 0.24, y: 0.74, enabled: true, color: "#B8A05E" },
-    { id: "s-cm", label: "Community",           percent: 20,  x: 0.24, y: 0.32, enabled: true, color: "#8FA98A" },
-    { id: "s-hb", label: "Hobbies",             percent: 20,  x: 0.74, y: 0.72, enabled: true, color: "#B592C1" },
+    { id: "s-wk", label: "Work", percent: 100, x: 0.56, y: 0.56, enabled: true, color: "#7BA7C5" },
+    {
+      id: "s-cr",
+      label: "Close relationships",
+      percent: 22,
+      x: 0.76,
+      y: 0.26,
+      enabled: true,
+      color: "#C58F8F",
+    },
+    { id: "s-fm", label: "Family", percent: 22, x: 0.24, y: 0.74, enabled: true, color: "#B8A05E" },
+    {
+      id: "s-cm",
+      label: "Community",
+      percent: 20,
+      x: 0.24,
+      y: 0.32,
+      enabled: true,
+      color: "#8FA98A",
+    },
+    {
+      id: "s-hb",
+      label: "Hobbies",
+      percent: 20,
+      x: 0.74,
+      y: 0.72,
+      enabled: true,
+      color: "#B592C1",
+    },
   ];
 
   // Ideal: Work covers ~65-70% of You, and the rest of life is distributed
   // around You with real overlap between the domains.
   const idealSample: DomainCircle[] = [
-    { id: "i-wk", label: "Work",                percent: 100, x: 0.60, y: 0.60, enabled: true, color: "#7BA7C5" },
-    { id: "i-cr", label: "Close relationships", percent: 50,  x: 0.70, y: 0.30, enabled: true, color: "#C58F8F" },
-    { id: "i-fm", label: "Family",              percent: 50,  x: 0.30, y: 0.30, enabled: true, color: "#B8A05E" },
-    { id: "i-cm", label: "Community",           percent: 45,  x: 0.30, y: 0.70, enabled: true, color: "#8FA98A" },
-    { id: "i-hb", label: "Hobbies",             percent: 45,  x: 0.70, y: 0.70, enabled: true, color: "#B592C1" },
+    { id: "i-wk", label: "Work", percent: 100, x: 0.6, y: 0.6, enabled: true, color: "#7BA7C5" },
+    {
+      id: "i-cr",
+      label: "Close relationships",
+      percent: 50,
+      x: 0.7,
+      y: 0.3,
+      enabled: true,
+      color: "#C58F8F",
+    },
+    { id: "i-fm", label: "Family", percent: 50, x: 0.3, y: 0.3, enabled: true, color: "#B8A05E" },
+    {
+      id: "i-cm",
+      label: "Community",
+      percent: 45,
+      x: 0.3,
+      y: 0.7,
+      enabled: true,
+      color: "#8FA98A",
+    },
+    { id: "i-hb", label: "Hobbies", percent: 45, x: 0.7, y: 0.7, enabled: true, color: "#B592C1" },
   ];
-
 
   // Flow: framework intro → current vs ideal → QR → then the reflection questions.
   const slides: Slide[] = [];
@@ -92,7 +209,8 @@ function FacilitatorPage() {
       { value: "28%", label: "are asked to work during time off" },
       { value: "72%", label: "burnout among remote workers" },
     ],
-    footnote: "Source: SurveyMonkey, Work-Life Balance Statistics. The determining factor is boundary erosion, not workload.",
+    footnote:
+      "Source: SurveyMonkey, Work-Life Balance Statistics. The determining factor is boundary erosion, not workload.",
   });
   slides.push({
     kind: "intro",
@@ -157,11 +275,11 @@ function FacilitatorPage() {
     body: "Write one sentence: what you will do, with whom, by when. Small enough to actually happen. Clear enough that you will know when it is done.",
   });
 
-
   useEffect(() => {
     if (!presenting) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === " ") setSlide((i) => Math.min(slides.length - 1, i + 1));
+      if (e.key === "ArrowRight" || e.key === " ")
+        setSlide((i) => Math.min(slides.length - 1, i + 1));
       else if (e.key === "ArrowLeft") setSlide((i) => Math.max(0, i - 1));
       else if (e.key === "Escape") {
         setPresenting(false);
@@ -187,9 +305,7 @@ function FacilitatorPage() {
     return (
       <div className="fixed inset-0 z-50 bg-background venn-bg flex flex-col">
         <div className="flex items-center justify-between px-8 py-4 text-sm text-muted-foreground">
-          <span>
-            {s.session > 0 ? `Session ${s.session} · ${s.kind}` : s.kind}
-          </span>
+          <span>{s.session > 0 ? `Session ${s.session} · ${s.kind}` : s.kind}</span>
           <span>
             {slide + 1} / {slides.length}
           </span>
@@ -213,50 +329,94 @@ function FacilitatorPage() {
                   {s.body}
                 </p>
               </div>
-              <div className={`mt-8 grid gap-6 ${s.compareCircles ? "md:grid-cols-2" : "md:grid-cols-1 max-w-xl mx-auto"}`}>
-                {s.compareCircles && <StaticDiagram title="Current" circles={s.compareCircles} showYou />}
+              <div
+                className={`mt-8 grid gap-6 ${s.compareCircles ? "md:grid-cols-2" : "md:grid-cols-1 max-w-xl mx-auto"}`}
+              >
+                {s.compareCircles && (
+                  <StaticDiagram title="Current" circles={s.compareCircles} showYou />
+                )}
 
-                <StaticDiagram title={s.compareCircles ? "Ideal" : ""} circles={s.circles} showYou />
+                <StaticDiagram
+                  title={s.compareCircles ? "Ideal" : ""}
+                  circles={s.circles}
+                  showYou
+                />
               </div>
             </div>
           ) : s.kind === "qr" ? (
-            <div className="text-center">
+            <div className="w-full max-w-6xl text-center">
               <p className="text-sm uppercase tracking-[0.25em] text-accent mb-4">{s.subtitle}</p>
-              <h2 className="font-serif text-5xl md:text-6xl text-foreground">{s.title}</h2>
-              <p className="mx-auto mt-4 max-w-xl text-lg text-foreground/80">{s.body}</p>
-              <button
-                onClick={() => {
-                  setPresenting(false);
-                  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-                  navigate({ to: "/join" });
-                }}
-                className="mt-8 rounded-3xl border border-border bg-white p-6 shadow-sm hover:border-accent transition-colors"
-                aria-label="Open the participant exercise"
-              >
-                {qrDataUrl ? (
-                  <img src={qrDataUrl} alt="Scan to open the exercise" className="h-80 w-80 md:h-[28rem] md:w-[28rem]" />
-                ) : (
-                  <div className="h-80 w-80 md:h-[28rem] md:w-[28rem] flex items-center justify-center text-muted-foreground">
-                    Generating QR…
-                  </div>
-                )}
-              </button>
-              <p className="mt-5 select-all font-mono text-sm text-muted-foreground break-all">{joinUrl}</p>
+              {showRoomAverage ? (
+                <RoomAverage submissions={roomSubmissions} roomCode={roomCode} />
+              ) : (
+                <>
+                  <h2 className="font-serif text-5xl md:text-6xl text-foreground">{s.title}</h2>
+                  <p className="mx-auto mt-4 max-w-xl text-lg text-foreground/80">{s.body}</p>
+                  <button
+                    onClick={() => {
+                      setPresenting(false);
+                      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+                      window.location.href = joinUrl;
+                    }}
+                    className="mt-8 rounded-3xl border border-border bg-white p-6 shadow-sm hover:border-accent transition-colors"
+                    aria-label="Open the participant exercise"
+                  >
+                    {qrDataUrl ? (
+                      <img
+                        src={qrDataUrl}
+                        alt="Scan to open the exercise"
+                        className="h-72 w-72 md:h-80 md:w-80"
+                      />
+                    ) : (
+                      <div className="h-72 w-72 md:h-80 md:w-80 flex items-center justify-center text-muted-foreground">
+                        Generating QR…
+                      </div>
+                    )}
+                  </button>
+                  <p className="mt-4 font-mono text-sm text-muted-foreground">Room {roomCode}</p>
+                  <p className="mt-2 select-all font-mono text-xs text-muted-foreground break-all">
+                    {joinUrl}
+                  </p>
+                </>
+              )}
+              <div className="mt-5 flex flex-wrap justify-center gap-3">
+                <button
+                  onClick={() => setShowRoomAverage((visible) => !visible)}
+                  className="rounded-full bg-primary px-5 py-2 text-primary-foreground"
+                >
+                  {showRoomAverage
+                    ? "Show QR code"
+                    : `Show room average (${roomSubmissions.length})`}
+                </button>
+                <button
+                  onClick={startNewRoom}
+                  className="rounded-full border border-border px-5 py-2 text-foreground/80 hover:border-accent"
+                >
+                  Start a new room
+                </button>
+              </div>
             </div>
           ) : s.kind === "stats" ? (
             <div className="w-full max-w-6xl">
               <div className="text-center">
                 <p className="text-sm uppercase tracking-[0.25em] text-accent mb-3">{s.subtitle}</p>
-                <h2 className="font-serif text-4xl md:text-5xl text-foreground leading-tight">{s.title}</h2>
+                <h2 className="font-serif text-4xl md:text-5xl text-foreground leading-tight">
+                  {s.title}
+                </h2>
               </div>
               <div className="mt-12 grid gap-6 md:grid-cols-2">
                 {s.stats.map((st) => (
-                  <div key={st.value + st.source} className="rounded-2xl border border-border bg-card/60 p-8">
+                  <div
+                    key={st.value + st.source}
+                    className="rounded-2xl border border-border bg-card/60 p-8"
+                  >
                     <div className="font-serif text-7xl md:text-8xl text-foreground leading-none tracking-tight">
                       {st.value}
                     </div>
                     <p className="mt-4 text-lg text-foreground/85 leading-snug">{st.label}</p>
-                    <p className="mt-4 text-xs uppercase tracking-[0.15em] text-muted-foreground">{st.source}</p>
+                    <p className="mt-4 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                      {st.source}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -272,11 +432,16 @@ function FacilitatorPage() {
               </p>
               <div className="mx-auto mt-14 grid max-w-4xl gap-6 md:grid-cols-3">
                 {s.highlights.map((h) => (
-                  <div key={h.value + h.label} className="rounded-2xl border border-border bg-card/60 p-6">
+                  <div
+                    key={h.value + h.label}
+                    className="rounded-2xl border border-border bg-card/60 p-6"
+                  >
                     <div className="font-serif text-6xl md:text-7xl text-accent leading-none tracking-tight">
                       {h.value}
                     </div>
-                    <p className="mt-3 text-sm md:text-base text-foreground/80 leading-snug">{h.label}</p>
+                    <p className="mt-3 text-sm md:text-base text-foreground/80 leading-snug">
+                      {h.label}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -297,9 +462,14 @@ function FacilitatorPage() {
               </p>
               <div className="mt-14 grid gap-4 md:grid-cols-4">
                 {s.parties.map((p) => (
-                  <div key={p.label} className="rounded-2xl border border-border bg-card/50 px-4 py-6">
+                  <div
+                    key={p.label}
+                    className="rounded-2xl border border-border bg-card/50 px-4 py-6"
+                  >
                     <div className="font-serif text-2xl text-foreground">{p.label}</div>
-                    <p className="mt-2 text-xs uppercase tracking-[0.15em] text-muted-foreground">{p.note}</p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                      {p.note}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -319,7 +489,10 @@ function FacilitatorPage() {
                 </div>
                 <ul className="space-y-3">
                   {s.chips.map((c) => (
-                    <li key={c.label} className="flex items-center gap-4 rounded-2xl border border-border bg-card/60 px-5 py-4">
+                    <li
+                      key={c.label}
+                      className="flex items-center gap-4 rounded-2xl border border-border bg-card/60 px-5 py-4"
+                    >
                       <span
                         className="inline-block h-6 w-6 rounded-full border border-foreground/20"
                         style={{ backgroundColor: c.color, opacity: 0.7 }}
@@ -334,7 +507,6 @@ function FacilitatorPage() {
               </div>
             </div>
           ) : (
-
             <div className="max-w-5xl text-center">
               <p className="text-sm uppercase tracking-[0.25em] text-accent mb-6">{s.subtitle}</p>
               <h2 className="font-serif text-5xl md:text-7xl text-foreground leading-[1.05]">
@@ -399,8 +571,8 @@ function FacilitatorPage() {
               <p className="text-xs uppercase tracking-[0.18em] text-accent">Workshop</p>
               <h3 className="mt-2 font-serif text-xl text-foreground">The Diagram</h3>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                A 4-step live flow: intro, build the Current diagram, build the Ideal, then
-                a QR code for participants to submit their own.
+                A 4-step live flow: intro, build the Current diagram, build the Ideal, then a QR
+                code for participants to submit their own.
               </p>
               <span className="mt-4 inline-block text-sm text-accent group-hover:underline">
                 Open presenter →
@@ -410,7 +582,6 @@ function FacilitatorPage() {
         </section>
 
         <section className="mt-12 space-y-8">
-
           {facilitatorAgenda.map((a) => (
             <article key={a.session} className="rounded-2xl border border-border bg-card p-6">
               <p className="text-xs uppercase tracking-[0.15em] text-accent">Session {a.session}</p>
@@ -445,6 +616,37 @@ function FacilitatorPage() {
           </div>
         </section>
       </main>
+    </div>
+  );
+}
+
+function RoomAverage({
+  submissions,
+  roomCode,
+}: {
+  submissions: RoomSubmission[];
+  roomCode: string;
+}) {
+  const current = averageDiagram(submissions, "current");
+  const ideal = averageDiagram(submissions, "ideal");
+
+  return (
+    <div>
+      <h2 className="font-serif text-4xl md:text-5xl text-foreground">Room average</h2>
+      <p className="mt-3 text-lg text-foreground/80">
+        {submissions.length} {submissions.length === 1 ? "participant" : "participants"} submitted ·
+        Room {roomCode}
+      </p>
+      {submissions.length === 0 ? (
+        <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-border bg-card/60 p-10 text-muted-foreground">
+          Waiting for participants to press Submit…
+        </div>
+      ) : (
+        <div className="mt-8 grid gap-6 md:grid-cols-2">
+          <StaticDiagram title="Average Current" circles={current} showYou />
+          <StaticDiagram title="Average Ideal" circles={ideal} showYou />
+        </div>
+      )}
     </div>
   );
 }
