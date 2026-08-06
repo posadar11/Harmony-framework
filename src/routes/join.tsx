@@ -27,6 +27,7 @@ export const Route = createFileRoute("/join")({
 type Insights = {
   summary: string;
   suggestions: string[];
+  questions: string[];
 };
 
 const getInsights = createServerFn({ method: "POST" })
@@ -40,6 +41,7 @@ const getInsights = createServerFn({ method: "POST" })
         summary:
           "Insights aren't turned on yet. Add an OPENAI_API_KEY environment variable on the server to enable AI-generated insights.",
         suggestions: [],
+        questions: [],
       };
     }
 
@@ -96,7 +98,7 @@ Then give exactly 4 suggestions. Each must be one sentence, name a specific doma
     : ""
 }
 
-Respond ONLY with JSON in this exact shape: {"summary": string, "suggestions": string[]}`;
+Also include exactly 3 reflective questions as "homework" - questions the person should ask themselves to help close the gap (or, if aligned, to keep checking in with themselves). Each question should be specific to the domains and gap above, phrased in the second person ("Are you..." / "What would it take for you to..."), and genuinely thought-provoking rather than generic.\n\nRespond ONLY with JSON in this exact shape: {"summary": string, "suggestions": string[], "questions": string[]}`;
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -125,12 +127,14 @@ Respond ONLY with JSON in this exact shape: {"summary": string, "suggestions": s
       return {
         summary: typeof parsed.summary === "string" ? parsed.summary : "",
         suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.slice(0, 5) : [],
+        questions: Array.isArray(parsed.questions) ? parsed.questions.slice(0, 5) : [],
       };
     } catch (err) {
       console.error("[insights] LLM call failed", err);
       return {
         summary: "We couldn't generate personalized insights right now, but your comparison is ready below.",
         suggestions: [],
+        questions: [],
       };
     }
   });
@@ -276,6 +280,19 @@ function JoinPage() {
                         </li>
                       ))}
                     </ul>
+                  )}
+                  {insights.questions.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-sm font-medium text-foreground/90">Questions to sit with</h4>
+                      <ul className="mt-2 space-y-2">
+                        {insights.questions.map((q, i) => (
+                          <li key={i} className="text-sm text-foreground/80 flex gap-2">
+                            <span className="text-accent">?</span>
+                            <span>{q}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               )}
