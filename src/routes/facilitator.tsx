@@ -80,6 +80,7 @@ function FacilitatorPage() {
   const [roomCode, setRoomCode] = useState("");
   const [roomSubmissions, setRoomSubmissions] = useState<RoomSubmission[]>([]);
   const [showRoomAverage, setShowRoomAverage] = useState(false);
+  const [liveConnectionError, setLiveConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -111,16 +112,28 @@ function FacilitatorPage() {
 
     if (!isSupabaseConfigured()) return;
 
-    const channel = supabase
-      .channel(`harmony-room-${roomCode}`)
-      .on("broadcast", { event: "diagram-submitted" }, ({ payload }) => {
-        setRoomSubmissions((existing) => {
-          const next = [...existing, payload as RoomSubmission];
-          window.localStorage.setItem(storageKey, JSON.stringify(next));
-          return next;
+    setLiveConnectionError(null);
+    let channel;
+    try {
+      channel = supabase
+        .channel(`harmony-room-${roomCode}`)
+        .on("broadcast", { event: "diagram-submitted" }, ({ payload }) => {
+          setRoomSubmissions((existing) => {
+            const next = [...existing, payload as RoomSubmission];
+            window.localStorage.setItem(storageKey, JSON.stringify(next));
+            return next;
+          });
+        })
+        .subscribe((status) => {
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            setLiveConnectionError("The live room connection could not be established.");
+          }
         });
-      })
-      .subscribe();
+    } catch (error) {
+      console.error("[live-room] Failed to start facilitator subscription", error);
+      setLiveConnectionError("The live room connection could not be established.");
+      return;
+    }
 
     return () => {
       void supabase.removeChannel(channel);
@@ -349,7 +362,11 @@ function FacilitatorPage() {
             <div className="w-full max-w-6xl text-center">
               <p className="text-sm uppercase tracking-[0.25em] text-accent mb-4">{s.subtitle}</p>
               {showRoomAverage ? (
-                <RoomAverage submissions={roomSubmissions} roomCode={roomCode} />
+                <RoomAverage
+                  submissions={roomSubmissions}
+                  roomCode={roomCode}
+                  connectionError={liveConnectionError}
+                />
               ) : (
                 <>
                   <h2 className="font-serif text-5xl md:text-6xl text-foreground">{s.title}</h2>
@@ -625,9 +642,11 @@ function FacilitatorPage() {
 function RoomAverage({
   submissions,
   roomCode,
+  connectionError,
 }: {
   submissions: RoomSubmission[];
   roomCode: string;
+  connectionError: string | null;
 }) {
   const current = averageDiagram(submissions, "current");
   const ideal = averageDiagram(submissions, "ideal");
@@ -644,6 +663,11 @@ function RoomAverage({
         <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-3 text-sm text-foreground/80">
           Live collection is not connected yet. Add VITE_SUPABASE_URL and
           VITE_SUPABASE_PUBLISHABLE_KEY to Railway, then redeploy.
+        </div>
+      )}
+      {connectionError && (
+        <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-destructive/30 bg-destructive/10 px-5 py-3 text-sm text-foreground/80">
+          {connectionError} Refresh the page or start a new room to retry.
         </div>
       )}
       {submissions.length === 0 ? (
