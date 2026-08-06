@@ -51,6 +51,29 @@ const DEVELOPMENT_INSIGHTS: Insights = {
   ],
 };
 
+function getStorageErrorMessage(error: unknown): string {
+  const details =
+    error && typeof error === "object"
+      ? `${"code" in error ? String(error.code) : ""} ${
+          "message" in error ? String(error.message) : ""
+        }`
+      : error instanceof Error
+        ? error.message
+        : "";
+
+  if (details.includes("PGRST205") || details.includes("diagram_submissions")) {
+    return "Your diagram reached the live room, but this email was not saved because the Supabase submissions table still needs to be created.";
+  }
+
+  if (details.includes("Missing Supabase environment variable")) {
+    return "Your diagram reached the live room, but this email was not saved because Supabase is not connected on this deployment.";
+  }
+
+  return (
+    details.trim() || "Your email could not be saved. Your room submission was still delivered."
+  );
+}
+
 const getInsights = createServerFn({ method: "POST" })
   .validator((data: { current: DomainCircle[]; ideal: DomainCircle[] }) => data)
   .handler(async ({ data }): Promise<Insights> => {
@@ -255,8 +278,7 @@ function JoinPage() {
           });
           if (contactError) throw contactError;
         } catch (err) {
-          const msg = err instanceof Error ? err.message : "Something went wrong.";
-          setError(msg);
+          setError(getStorageErrorMessage(err));
           setSubmitting(false);
           return;
         }
@@ -277,8 +299,7 @@ function JoinPage() {
       if (error) throw error;
       setDone(true);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong.";
-      setError(msg);
+      setError(getStorageErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
