@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: harmony-framework
+    env: node
+    region: oregon
+    plan: starter
+    branch: main
+    autoDeploy: true
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
