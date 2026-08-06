@@ -30,7 +30,7 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 function normalizeSupabaseUrl(value: string | undefined): string | undefined {
-  const cleaned = value?.trim().replace(/^['"]|['"]$/g, "");
+  const cleaned = normalizeEnvironmentValue(value);
   if (!cleaned) return undefined;
   if (/^[a-z0-9]{15,30}$/i.test(cleaned)) return `https://${cleaned}.supabase.co`;
   try {
@@ -41,6 +41,15 @@ function normalizeSupabaseUrl(value: string | undefined): string | undefined {
   }
 }
 
+function normalizeEnvironmentValue(value: string | undefined): string | undefined {
+  const cleaned = value?.trim().replace(/^['"]|['"]$/g, "");
+  if (!cleaned) return undefined;
+
+  // Railway values are sometimes pasted as NAME=value instead of only value.
+  const assignment = cleaned.match(/^[A-Z][A-Z0-9_]*=(.+)$/s);
+  return assignment?.[1]?.trim().replace(/^['"]|['"]$/g, "") || cleaned;
+}
+
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
   // Fall back to process.env for SSR (server-side rendering)
@@ -48,8 +57,9 @@ function createSupabaseClient() {
   const SUPABASE_URL =
     normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL) ||
     normalizeSupabaseUrl(serverEnvironment?.SUPABASE_URL);
-  const SUPABASE_PUBLISHABLE_KEY =
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || serverEnvironment?.SUPABASE_PUBLISHABLE_KEY;
+  const SUPABASE_PUBLISHABLE_KEY = normalizeEnvironmentValue(
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || serverEnvironment?.SUPABASE_PUBLISHABLE_KEY,
+  );
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const missing = [
@@ -78,7 +88,9 @@ export function isSupabaseConfigured() {
   return Boolean(
     (normalizeSupabaseUrl(import.meta.env.VITE_SUPABASE_URL) ||
       normalizeSupabaseUrl(serverEnvironment?.SUPABASE_URL)) &&
-    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || serverEnvironment?.SUPABASE_PUBLISHABLE_KEY),
+    normalizeEnvironmentValue(
+      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || serverEnvironment?.SUPABASE_PUBLISHABLE_KEY,
+    ),
   );
 }
 

@@ -34,6 +34,23 @@ type Insights = {
   questions: string[];
 };
 
+const DEVELOPMENT_INSIGHTS: Insights = {
+  summary:
+    "Your Current diagram shows where your time and energy are going today. Your Ideal is not a score to achieve; it is a way to notice what you want to protect, reduce, or choose more consciously. The distance between the two diagrams is useful information, not a failure.",
+  suggestions: [
+    "Notice the circle with the biggest difference between Current and Ideal; it may be the clearest place to begin.",
+    "Consider which circles grew through a conscious choice and which grew through habit, pressure, or an unspoken expectation.",
+    "Choose one small boundary, conversation, or repeated action that could move your Current one step toward your Ideal.",
+  ],
+  questions: [
+    "Which difference between your Current and Ideal feels most important to you, and why?",
+    "Where are you giving time or energy because you genuinely choose to, and where are you doing it mainly from obligation?",
+    "What part of your Current life is already working well and deserves to be protected?",
+    "Who might need to be part of a conversation before one of these circles can change?",
+    "What is the smallest realistic shift you could make during the next thirty days?",
+  ],
+};
+
 const getInsights = createServerFn({ method: "POST" })
   .validator((data: { current: DomainCircle[]; ideal: DomainCircle[] }) => data)
   .handler(async ({ data }): Promise<Insights> => {
@@ -41,22 +58,7 @@ const getInsights = createServerFn({ method: "POST" })
     const personalizedInsightsEnabled = process.env.ENABLE_PERSONALIZED_INSIGHTS === "true";
 
     if (!personalizedInsightsEnabled) {
-      return {
-        summary:
-          "Your Current diagram shows where your time and energy are going today. Your Ideal is not a score to achieve; it is a way to notice what you want to protect, reduce, or choose more consciously. The distance between the two diagrams is useful information, not a failure.",
-        suggestions: [
-          "Notice the circle with the biggest difference between Current and Ideal; it may be the clearest place to begin.",
-          "Consider which circles grew through a conscious choice and which grew through habit, pressure, or an unspoken expectation.",
-          "Choose one small boundary, conversation, or repeated action that could move your Current one step toward your Ideal.",
-        ],
-        questions: [
-          "Which difference between your Current and Ideal feels most important to you, and why?",
-          "Where are you giving time or energy because you genuinely choose to, and where are you doing it mainly from obligation?",
-          "What part of your Current life is already working well and deserves to be protected?",
-          "Who might need to be part of a conversation before one of these circles can change?",
-          "What is the smallest realistic shift you could make during the next thirty days?",
-        ],
-      };
+      return DEVELOPMENT_INSIGHTS;
     }
 
     const apiKey = process.env.OPENAI_API_KEY;
@@ -185,12 +187,14 @@ function JoinPage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [roomDelivery, setRoomDelivery] = useState<"idle" | "sent" | "failed">("idle");
   const [error, setError] = useState<string | null>(null);
 
   const handleGetInsights = async () => {
     setStep("loading");
     try {
-      await broadcastSubmission(room, { current, ideal });
+      const deliveredToRoom = await broadcastSubmission(room, { current, ideal });
+      setRoomDelivery(deliveredToRoom ? "sent" : "failed");
 
       try {
         const { error: saveError } = await supabase.from("diagram_submissions").insert({
@@ -210,7 +214,13 @@ function JoinPage() {
         );
       }
 
-      const result = await getInsights({ data: { current, ideal } });
+      // The preview is intentionally static while personalized insights are in development.
+      // Avoid a server-function call here so submitting never depends on server-only Supabase vars.
+      const personalizedInsightsAvailable =
+        import.meta.env.VITE_ENABLE_PERSONALIZED_INSIGHTS === "true";
+      const result = personalizedInsightsAvailable
+        ? await getInsights({ data: { current, ideal } })
+        : DEVELOPMENT_INSIGHTS;
       setInsights(result);
     } catch (err) {
       setInsights({
@@ -288,7 +298,19 @@ function JoinPage() {
             {step === "loading" && "Comparing your Ideal and Current balance..."}
             {step === "results" && "Here's how your Current and Ideal compare."}
           </p>
+          {room && (
+            <p className="mt-2 font-mono text-xs uppercase tracking-[0.14em] text-accent">
+              Connected to room {room}
+            </p>
+          )}
         </header>
+
+        {!room && (step === "ideal" || step === "current") && (
+          <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground/80">
+            This link is not connected to a facilitator room. Scan the QR code shown in Facilitator
+            Mode if your response should appear in the room average.
+          </div>
+        )}
 
         {(step === "ideal" || step === "current") && (
           <div className="mt-6 rounded-2xl border border-border bg-card/70 p-4">
@@ -348,6 +370,17 @@ function JoinPage() {
 
           {step === "results" && (
             <div>
+              {roomDelivery === "sent" && (
+                <div className="mb-5 rounded-xl border border-secondary/50 bg-secondary/10 px-4 py-3 text-center text-sm text-foreground/80">
+                  Submitted to room {room}. The facilitator count should update now.
+                </div>
+              )}
+              {roomDelivery === "failed" && room && (
+                <div className="mb-5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-center text-sm text-foreground/80">
+                  Your room submission could not be delivered. Ask the facilitator to keep the room
+                  screen open, then try again.
+                </div>
+              )}
               <div className="grid gap-5 md:grid-cols-2">
                 <StaticDiagram title="Ideal" circles={ideal} showYou />
                 <StaticDiagram title="Current" circles={current} showYou />

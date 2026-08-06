@@ -50,21 +50,25 @@ export function averageDiagram(
 }
 
 export async function broadcastSubmission(room: string, submission: RoomSubmission) {
-  if (!room) return;
+  if (!room) return false;
   const channel = supabase.channel(`harmony-room-${room}`);
 
-  await new Promise<void>((resolve) => {
+  return new Promise<boolean>((resolve) => {
     const timeout = window.setTimeout(() => {
       void supabase.removeChannel(channel);
-      resolve();
+      resolve(false);
     }, 4000);
 
     channel.subscribe(async (status) => {
       if (status !== "SUBSCRIBED") return;
-      await channel.send({ type: "broadcast", event: "diagram-submitted", payload: submission });
+      const result = await channel.send({
+        type: "broadcast",
+        event: "diagram-submitted",
+        payload: submission,
+      });
       window.clearTimeout(timeout);
       await supabase.removeChannel(channel);
-      resolve();
+      resolve(result === "ok");
     });
   });
 }

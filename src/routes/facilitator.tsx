@@ -414,6 +414,9 @@ function FacilitatorPage() {
                   Start a new room
                 </button>
               </div>
+              {liveConnectionError && (
+                <p className="mt-3 text-sm text-destructive">{liveConnectionError}</p>
+              )}
             </div>
           ) : s.kind === "stats" ? (
             <div className="w-full max-w-6xl">
