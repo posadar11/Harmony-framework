@@ -7,6 +7,8 @@ export interface DomainCircle {
   enabled: boolean;
   color: string;
   custom?: boolean;
+  /** Optional precomputed time share, used when displaying a room average. */
+  timeShare?: number;
   /** Force label to sit centered on the circle (used in static presentation views). */
   labelInside?: boolean;
 }

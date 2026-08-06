@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { DiagramBuilder, StaticDiagram } from "@/components/DiagramBuilder";
+import { domainTimeShare } from "@/lib/diagram-geometry";
 import { makeStartingDiagram, type DomainCircle } from "@/lib/diagram-types";
 import { supabase } from "@/integrations/supabase/client";
 import { broadcastSubmission } from "@/lib/live-room";
@@ -105,10 +106,10 @@ const getInsights = createServerFn({ method: "POST" })
     }
 
     const idealByLabel = new Map(
-      ideal.filter((c) => c.enabled).map((c) => [c.label, Math.round(c.percent)]),
+      ideal.filter((c) => c.enabled).map((c) => [c.label, Math.round(domainTimeShare(c))]),
     );
     const currentByLabel = new Map(
-      current.filter((c) => c.enabled).map((c) => [c.label, Math.round(c.percent)]),
+      current.filter((c) => c.enabled).map((c) => [c.label, Math.round(domainTimeShare(c))]),
     );
     const labels = Array.from(new Set([...currentByLabel.keys(), ...idealByLabel.keys()]));
 

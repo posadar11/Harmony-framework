@@ -1,5 +1,6 @@
 import type { DomainCircle } from "@/lib/diagram-types";
 import { DEFAULT_DOMAINS } from "@/lib/diagram-types";
+import { domainTimeShare } from "@/lib/diagram-geometry";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface RoomSubmission {
@@ -30,11 +31,17 @@ export function averageDiagram(
           ? 0
           : matches.reduce((sum, circle) => sum + (circle?.enabled ? circle.percent : 0), 0) /
             submissions.length;
+      const timeShare =
+        submissions.length === 0
+          ? 0
+          : matches.reduce((sum, circle) => sum + (circle ? domainTimeShare(circle) : 0), 0) /
+            submissions.length;
 
       return {
         ...domain,
         id: `average-${side}-${index}`,
         percent,
+        timeShare,
         enabled: percent > 0,
         x:
           enabled.length > 0

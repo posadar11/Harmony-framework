@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DomainCircle } from "@/lib/diagram-types";
 import { DEFAULT_COLORS } from "@/lib/diagram-types";
+import {
+  clamp,
+  constrainDomainToCanvas,
+  domainRadiusRatio,
+  domainTimeShare,
+  estimateUniqueCoverage,
+  YOU_RADIUS_RATIO,
+} from "@/lib/diagram-geometry";
 
 interface Props {
   circles: DomainCircle[];
@@ -17,64 +25,11 @@ const STATIC_LABEL_PADDING = 10;
 const MIN_ALLOCATION = 5;
 const ALLOCATION_STEP = 5;
 const DRAG_THRESHOLD_PX = 7;
-const YOU_RADIUS_RATIO = 0.28;
-const UNION_SAMPLE_GRID = 120;
 
 function radiusFor(percent: number, canvasSize: number) {
   const base = MIN_R + (MAX_R - MIN_R) * (percent / 100);
   // Scale radius relative to a 520px baseline so compact canvases still look right.
   return base * (canvasSize / 520);
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function constrainDomainToYou(x: number, y: number, percent: number) {
-  const radius = YOU_RADIUS_RATIO * Math.sqrt(clamp(percent, 0, 100) / 100);
-  const maxDistance = Math.max(0, YOU_RADIUS_RATIO - radius);
-  const dx = x - 0.5;
-  const dy = y - 0.5;
-  const distance = Math.hypot(dx, dy);
-  if (distance <= maxDistance || distance === 0) return { x, y };
-  const scale = maxDistance / distance;
-  return { x: 0.5 + dx * scale, y: 0.5 + dy * scale };
-}
-
-function estimateUniqueCoverage(circles: DomainCircle[]) {
-  const domains = circles
-    .filter((circle) => circle.enabled)
-    .map((circle) => {
-      const position = constrainDomainToYou(circle.x, circle.y, circle.percent);
-      const radius = YOU_RADIUS_RATIO * Math.sqrt(clamp(circle.percent, 0, 100) / 100);
-      return { ...position, radiusSquared: radius * radius };
-    });
-  if (domains.length === 0) return 0;
-
-  let pointsInsideYou = 0;
-  let coveredPoints = 0;
-  const youRadiusSquared = YOU_RADIUS_RATIO * YOU_RADIUS_RATIO;
-  for (let row = 0; row < UNION_SAMPLE_GRID; row++) {
-    const y = (row + 0.5) / UNION_SAMPLE_GRID;
-    for (let column = 0; column < UNION_SAMPLE_GRID; column++) {
-      const x = (column + 0.5) / UNION_SAMPLE_GRID;
-      const youDx = x - 0.5;
-      const youDy = y - 0.5;
-      if (youDx * youDx + youDy * youDy > youRadiusSquared) continue;
-      pointsInsideYou++;
-      if (
-        domains.some((domain) => {
-          const dx = x - domain.x;
-          const dy = y - domain.y;
-          return dx * dx + dy * dy <= domain.radiusSquared;
-        })
-      ) {
-        coveredPoints++;
-      }
-    }
-  }
-
-  return pointsInsideYou === 0 ? 0 : (coveredPoints / pointsInsideYou) * 100;
 }
 
 function getStaticLabelSize(text: string, canvasSize: number) {
@@ -137,7 +92,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
 
   const grossAllocation = circles
     .filter((circle) => circle.enabled)
-    .reduce((sum, circle) => sum + circle.percent, 0);
+    .reduce((sum, circle) => sum + domainTimeShare(circle), 0);
   const uniqueCoverage = useMemo(() => estimateUniqueCoverage(circles), [circles]);
   const remainingCoverage = Math.max(0, 100 - uniqueCoverage);
   const sharedAllocation = Math.max(0, grossAllocation - uniqueCoverage);
@@ -146,7 +101,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
     const percent = Math.round(clamp(requested, MIN_ALLOCATION, 100));
     const circle = circlesRef.current.find((item) => item.id === id);
     if (!circle) return;
-    const position = constrainDomainToYou(circle.x, circle.y, percent);
+    const position = constrainDomainToCanvas(circle.x, circle.y, percent);
     update(id, { percent, ...position });
   };
 
@@ -156,7 +111,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
       return;
     }
     const percent = Math.max(MIN_ALLOCATION, Math.min(100, circle.percent || 20));
-    const position = constrainDomainToYou(circle.x, circle.y, percent);
+    const position = constrainDomainToCanvas(circle.x, circle.y, percent);
     update(circle.id, { enabled: true, percent, ...position });
   };
 
@@ -215,7 +170,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
     const desiredX = drag.startX + deltaX / rect.width;
     const desiredY = drag.startY + deltaY / rect.height;
     const position = showYou
-      ? constrainDomainToYou(desiredX, desiredY, circle.percent)
+      ? constrainDomainToCanvas(desiredX, desiredY, circle.percent)
       : { x: clamp(desiredX, 0.05, 0.95), y: clamp(desiredY, 0.05, 0.95) };
     update(drag.id, {
       ...position,
@@ -248,7 +203,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
         style={{ aspectRatio: "1 / 1", maxHeight: compact ? 380 : 560 }}
       >
         <p className="absolute bottom-2 left-0 right-0 z-30 text-center text-[11px] text-muted-foreground pointer-events-none">
-          Drag to show shared time · use the controls below to set each domain share
+          Drag in or out of You · overlap domains to show shared time
         </p>
         {showYou && (
           <>
@@ -273,10 +228,8 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
         {circles
           .filter((c) => c.enabled)
           .map((c) => {
-            const r = showYou
-              ? youR * Math.sqrt(Math.max(0, c.percent) / 100)
-              : radiusFor(c.percent, size);
-            const position = showYou ? constrainDomainToYou(c.x, c.y, c.percent) : c;
+            const r = showYou ? size * domainRadiusRatio(c.percent) : radiusFor(c.percent, size);
+            const position = showYou ? constrainDomainToCanvas(c.x, c.y, c.percent) : c;
             const cx = position.x * size;
             const cy = position.y * size;
             const isSel = selected === c.id;
@@ -301,7 +254,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
                   className="px-2 text-[11px] md:text-xs font-medium text-foreground/85 pointer-events-none"
                   style={{ maxWidth: r * 1.7 }}
                 >
-                  {showYou ? `${c.label} · ${Math.round(c.percent)}%` : c.label}
+                  {showYou ? `${c.label} · ${Math.round(domainTimeShare(c))}%` : c.label}
                 </span>
               </div>
             );
@@ -312,6 +265,14 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
           </div>
         )}
       </div>
+
+      {showYou && (
+        <div className="rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-xs leading-relaxed text-foreground/80">
+          <span className="font-medium text-foreground">How it works:</span> the part of a domain
+          inside You is its percentage of your time. Move it outward to reduce that share. Where
+          domains overlap inside You, that time is shared and counts only once overall.
+        </div>
+      )}
 
       <div className="rounded-2xl border border-border bg-card/60 p-4">
         <div className="flex items-center justify-between gap-4">
@@ -332,7 +293,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
           />
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          {Math.round(remainingCoverage)}% remains uncovered. Individual domain shares total{" "}
+          {Math.round(remainingCoverage)}% remains uncovered. The portions inside You total{" "}
           {Math.round(grossAllocation)}%
           {sharedAllocation >= 1
             ? ` because approximately ${Math.round(sharedAllocation)}% is shared across domains.`
@@ -387,7 +348,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
                 </button>
               )}
               <span className="text-xs font-mono text-muted-foreground w-10 text-right shrink-0">
-                {Math.round(c.percent)}%
+                {Math.round(domainTimeShare(c))}%
               </span>
               {c.custom && (
                 <button
@@ -411,7 +372,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
               </button>
               <div className="min-w-0 flex-1">
                 <label htmlFor={`${c.id}-allocation`} className="sr-only">
-                  Share of time and energy for {c.label}
+                  Circle size for {c.label}
                 </label>
                 <input
                   id={`${c.id}-allocation`}
@@ -425,7 +386,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
                   className="w-full accent-[var(--accent)] disabled:opacity-35"
                 />
                 <p className="mt-1 text-center text-[11px] text-muted-foreground">
-                  Share of time and energy
+                  Circle size · position determines the share inside You
                 </p>
               </div>
               <button
@@ -507,10 +468,8 @@ export function StaticDiagram({
         {circles
           .filter((c) => c.enabled)
           .map((c) => {
-            const r = showYou
-              ? youR * Math.sqrt(Math.max(0, c.percent) / 100)
-              : radiusFor(c.percent, size);
-            const position = showYou ? constrainDomainToYou(c.x, c.y, c.percent) : c;
+            const r = showYou ? size * domainRadiusRatio(c.percent) : radiusFor(c.percent, size);
+            const position = showYou ? constrainDomainToCanvas(c.x, c.y, c.percent) : c;
             const cx = showYou ? position.x * size : clamp(position.x * size, r + 2, size - r - 2);
             const cy = showYou ? position.y * size : clamp(position.y * size, r + 2, size - r - 2);
             return (
@@ -542,13 +501,12 @@ export function StaticDiagram({
             y: number;
           };
           const placements: LabelPlacement[] = enabled.map((c) => {
-            const r = showYou
-              ? youR * Math.sqrt(Math.max(0, c.percent) / 100)
-              : radiusFor(c.percent, size);
-            const position = showYou ? constrainDomainToYou(c.x, c.y, c.percent) : c;
+            const r = showYou ? size * domainRadiusRatio(c.percent) : radiusFor(c.percent, size);
+            const position = showYou ? constrainDomainToCanvas(c.x, c.y, c.percent) : c;
             const cx = showYou ? position.x * size : clamp(position.x * size, r + 2, size - r - 2);
             const cy = showYou ? position.y * size : clamp(position.y * size, r + 2, size - r - 2);
-            const text = showYou ? `${c.label} · ${Math.round(c.percent)}%` : c.label;
+            const share = c.timeShare ?? domainTimeShare({ ...c, ...position });
+            const text = showYou ? `${c.label} · ${Math.round(share)}%` : c.label;
             const sz = getStaticLabelSize(text, size);
             const dx = cx - size / 2;
             const dy = cy - size / 2;
