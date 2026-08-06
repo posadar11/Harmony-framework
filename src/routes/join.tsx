@@ -524,7 +524,7 @@ function ExercisePage({ room }: { room: string }) {
                       <ul className="mt-2 space-y-2">
                         {insights.questions.map((q, i) => (
                           <li key={i} className="text-sm text-foreground/80 flex gap-2">
-                            <span className="text-accent">?</span>
+                            <span className="text-accent">•</span>
                             <span>{q}</span>
                           </li>
                         ))}
