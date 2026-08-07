@@ -254,9 +254,9 @@ function FacilitatorPage() {
   slides.push({
     kind: "overlap",
     session: 1,
-    title: "Move the circles. Watch value multiply.",
+    title: "Overlap multiplies value",
     subtitle: "Live overlap demonstration",
-    body: "Drag domains together to show shared moments. The week remains 100%, while the combined value across relationships and activities can rise above 100%.",
+    body: "Drag the circles together. One hour can count toward more than one relationship.",
   });
   slides.push({
     kind: "scenario",
@@ -339,8 +339,13 @@ function FacilitatorPage() {
                   {s.body}
                 </p>
               </div>
-              <div className="mt-8 grid items-start gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                <DiagramBuilder circles={overlapDemo} onChange={setOverlapDemo} compact showYou />
+              <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1.65fr_0.75fr]">
+                <DiagramBuilder
+                  circles={overlapDemo}
+                  onChange={setOverlapDemo}
+                  showYou
+                  presentationMode
+                />
                 <div className="lg:sticky lg:top-4">
                   <TimeMultiplierSummary circles={overlapDemo} />
                 </div>

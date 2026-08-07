@@ -17,6 +17,8 @@ interface Props {
   compact?: boolean;
   /** Draw a fixed central "You" circle and treat other circles as domains around it. */
   showYou?: boolean;
+  /** Large canvas-only view for live presentation; circles remain draggable. */
+  presentationMode?: boolean;
 }
 
 const MIN_R = 30;
@@ -40,7 +42,13 @@ function getStaticLabelSize(text: string, canvasSize: number) {
   return { width, height: lines * 16 + 5, maxWidth };
 }
 
-export function DiagramBuilder({ circles, onChange, compact = false, showYou = false }: Props) {
+export function DiagramBuilder({
+  circles,
+  onChange,
+  compact = false,
+  showYou = false,
+  presentationMode = false,
+}: Props) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const circlesRef = useRef(circles);
   const [size, setSize] = useState(compact ? 340 : 520);
@@ -200,10 +208,17 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
         onPointerCancel={onPointerUp}
         onLostPointerCapture={onPointerUp}
         className="relative w-full rounded-2xl border border-border bg-card/60 venn-bg overflow-hidden touch-none select-none"
-        style={{ aspectRatio: "1 / 1", maxHeight: compact ? 380 : 560 }}
+        style={{
+          aspectRatio: "1 / 1",
+          maxHeight: presentationMode ? 640 : compact ? 380 : 560,
+          maxWidth: presentationMode ? 640 : undefined,
+          marginInline: presentationMode ? "auto" : undefined,
+        }}
       >
         <p className="absolute bottom-2 left-0 right-0 z-30 text-center text-[11px] text-muted-foreground pointer-events-none">
-          Drag in or out of You · overlap domains to show shared time
+          {presentationMode
+            ? "Drag the circles to change the overlaps"
+            : "Drag in or out of You · overlap domains to show shared time"}
         </p>
         {showYou && (
           <>
@@ -266,7 +281,7 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
         )}
       </div>
 
-      {showYou && (
+      {showYou && !presentationMode && (
         <div className="rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-xs leading-relaxed text-foreground/80">
           <span className="font-medium text-foreground">How it works:</span> the part of a domain
           inside You is its percentage of your time. Move it outward to reduce that share. Where
@@ -274,140 +289,144 @@ export function DiagramBuilder({ circles, onChange, compact = false, showYou = f
         </div>
       )}
 
-      <div className="rounded-2xl border border-border bg-card/60 p-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-foreground">Unique time accounted for</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Overlapping domains share time, so the overlap counts only once overall.
-            </p>
+      {!presentationMode && (
+        <div className="rounded-2xl border border-border bg-card/60 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">Unique time accounted for</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Overlapping domains share time, so the overlap counts only once overall.
+              </p>
+            </div>
+            <span className="shrink-0 font-mono text-sm text-foreground">
+              {Math.round(uniqueCoverage)}% / 100%
+            </span>
           </div>
-          <span className="shrink-0 font-mono text-sm text-foreground">
-            {Math.round(uniqueCoverage)}% / 100%
-          </span>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-accent transition-[width]"
+              style={{ width: `${clamp(uniqueCoverage, 0, 100)}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground/80">
+              {Math.round(uniqueCoverage)}% is occupied by the people, responsibilities, and
+              activities shown.
+            </span>{" "}
+            The remaining {Math.round(remainingCoverage)}% is unoccupied personal time—time that is
+            entirely yours and is not spent with others, working, participating in community, or
+            doing a hobby.
+            {sharedAllocation >= 1 &&
+              ` Approximately ${Math.round(sharedAllocation)}% is shared across domains.`}
+          </p>
         </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-accent transition-[width]"
-            style={{ width: `${clamp(uniqueCoverage, 0, 100)}%` }}
-          />
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground/80">
-            {Math.round(uniqueCoverage)}% is occupied by the people, responsibilities, and
-            activities shown.
-          </span>{" "}
-          The remaining {Math.round(remainingCoverage)}% is unoccupied personal time—time that is
-          entirely yours and is not spent with others, working, participating in community, or doing
-          a hobby.
-          {sharedAllocation >= 1 &&
-            ` Approximately ${Math.round(sharedAllocation)}% is shared across domains.`}
-        </p>
-      </div>
+      )}
 
-      <ul className="grid gap-2">
-        {circles.map((c) => (
-          <li
-            key={c.id}
-            className={`rounded-xl border bg-background/60 px-3 py-2.5 ${
-              c.enabled ? "border-border" : "border-border/50 opacity-70"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => toggleCircle(c)}
-                aria-label={c.enabled ? `Hide ${c.label}` : `Show ${c.label}`}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                  c.enabled ? "bg-primary" : "bg-muted"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${
-                    c.enabled ? "translate-x-5" : "translate-x-0.5"
+      {!presentationMode && (
+        <ul className="grid gap-2">
+          {circles.map((c) => (
+            <li
+              key={c.id}
+              className={`rounded-xl border bg-background/60 px-3 py-2.5 ${
+                c.enabled ? "border-border" : "border-border/50 opacity-70"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => toggleCircle(c)}
+                  aria-label={c.enabled ? `Hide ${c.label}` : `Show ${c.label}`}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    c.enabled ? "bg-primary" : "bg-muted"
                   }`}
-                />
-              </button>
-              <span className="h-3 w-3 rounded-full shrink-0" style={{ background: c.color }} />
-              {renaming === c.id ? (
-                <input
-                  autoFocus
-                  defaultValue={c.label}
-                  onBlur={(e) => {
-                    update(c.id, { label: e.target.value.trim() || c.label });
-                    setRenaming(null);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                    if (e.key === "Escape") setRenaming(null);
-                  }}
-                  className="flex-1 min-w-0 bg-transparent border-b border-border outline-none text-foreground text-sm"
-                />
-              ) : (
-                <button
-                  onClick={() => setRenaming(c.id)}
-                  className="flex-1 min-w-0 text-left text-sm text-foreground truncate hover:text-accent"
-                  title="Click to rename"
                 >
-                  {c.label}
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${
+                      c.enabled ? "translate-x-5" : "translate-x-0.5"
+                    }`}
+                  />
                 </button>
-              )}
-              <span className="text-xs font-mono text-muted-foreground w-10 text-right shrink-0">
-                {Math.round(domainTimeShare(c))}%
-              </span>
-              {c.custom && (
-                <button
-                  onClick={() => remove(c.id)}
-                  className="text-xs text-muted-foreground hover:text-destructive"
-                  aria-label={`Remove ${c.label}`}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-            <div className="mt-3 flex items-center gap-3">
-              <button
-                type="button"
-                disabled={!c.enabled || c.percent <= MIN_ALLOCATION}
-                onClick={() => updateAllocation(c.id, c.percent - ALLOCATION_STEP)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-lg text-foreground disabled:opacity-35"
-                aria-label={`Reduce ${c.label}`}
-              >
-                −
-              </button>
-              <div className="min-w-0 flex-1">
-                <label htmlFor={`${c.id}-allocation`} className="sr-only">
-                  Circle size for {c.label}
-                </label>
-                <input
-                  id={`${c.id}-allocation`}
-                  type="range"
-                  min={MIN_ALLOCATION}
-                  max={100}
-                  step={1}
-                  value={c.percent}
-                  disabled={!c.enabled}
-                  onChange={(e) => updateAllocation(c.id, parseInt(e.target.value, 10))}
-                  className="w-full accent-[var(--accent)] disabled:opacity-35"
-                />
-                <p className="mt-1 text-center text-[11px] text-muted-foreground">
-                  Circle size · position determines the share inside You
-                </p>
+                <span className="h-3 w-3 rounded-full shrink-0" style={{ background: c.color }} />
+                {renaming === c.id ? (
+                  <input
+                    autoFocus
+                    defaultValue={c.label}
+                    onBlur={(e) => {
+                      update(c.id, { label: e.target.value.trim() || c.label });
+                      setRenaming(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                      if (e.key === "Escape") setRenaming(null);
+                    }}
+                    className="flex-1 min-w-0 bg-transparent border-b border-border outline-none text-foreground text-sm"
+                  />
+                ) : (
+                  <button
+                    onClick={() => setRenaming(c.id)}
+                    className="flex-1 min-w-0 text-left text-sm text-foreground truncate hover:text-accent"
+                    title="Click to rename"
+                  >
+                    {c.label}
+                  </button>
+                )}
+                <span className="text-xs font-mono text-muted-foreground w-10 text-right shrink-0">
+                  {Math.round(domainTimeShare(c))}%
+                </span>
+                {c.custom && (
+                  <button
+                    onClick={() => remove(c.id)}
+                    className="text-xs text-muted-foreground hover:text-destructive"
+                    aria-label={`Remove ${c.label}`}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
-              <button
-                type="button"
-                disabled={!c.enabled || c.percent >= 100}
-                onClick={() => updateAllocation(c.id, c.percent + ALLOCATION_STEP)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-lg text-foreground disabled:opacity-35"
-                aria-label={`Increase ${c.label}`}
-              >
-                +
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+              <div className="mt-3 flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={!c.enabled || c.percent <= MIN_ALLOCATION}
+                  onClick={() => updateAllocation(c.id, c.percent - ALLOCATION_STEP)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-lg text-foreground disabled:opacity-35"
+                  aria-label={`Reduce ${c.label}`}
+                >
+                  −
+                </button>
+                <div className="min-w-0 flex-1">
+                  <label htmlFor={`${c.id}-allocation`} className="sr-only">
+                    Circle size for {c.label}
+                  </label>
+                  <input
+                    id={`${c.id}-allocation`}
+                    type="range"
+                    min={MIN_ALLOCATION}
+                    max={100}
+                    step={1}
+                    value={c.percent}
+                    disabled={!c.enabled}
+                    onChange={(e) => updateAllocation(c.id, parseInt(e.target.value, 10))}
+                    className="w-full accent-[var(--accent)] disabled:opacity-35"
+                  />
+                  <p className="mt-1 text-center text-[11px] text-muted-foreground">
+                    Circle size · position determines the share inside You
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={!c.enabled || c.percent >= 100}
+                  onClick={() => updateAllocation(c.id, c.percent + ALLOCATION_STEP)}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-lg text-foreground disabled:opacity-35"
+                  aria-label={`Increase ${c.label}`}
+                >
+                  +
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
 
-      {customCount < 2 && (
+      {!presentationMode && customCount < 2 && (
         <button
           onClick={addCustom}
           className="w-full rounded-xl border border-dashed border-border py-2.5 text-sm text-muted-foreground hover:border-accent hover:text-foreground transition-colors"
