@@ -1,8 +1,9 @@
 import type { DomainCircle } from "@/lib/diagram-types";
 
 export const YOU_RADIUS_RATIO = 0.28;
-export const PRESENTATION_YOU_RADIUS_RATIO = 0.24;
-export const PRESENTATION_DOMAIN_RADIUS_RATIO = 0.16;
+export const PRESENTATION_YOU_RADIUS_RATIO = 0.21;
+// At Size 100, a presentation category is exactly the same size as You.
+export const PRESENTATION_DOMAIN_RADIUS_RATIO = PRESENTATION_YOU_RADIUS_RATIO;
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));

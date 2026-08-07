@@ -226,8 +226,8 @@ export function DiagramBuilder({
         className="relative w-full rounded-2xl border border-border bg-card/60 venn-bg overflow-hidden touch-none select-none"
         style={{
           aspectRatio: "1 / 1",
-          maxHeight: presentationMode ? 720 : compact ? 380 : 560,
-          maxWidth: presentationMode ? 720 : undefined,
+          maxHeight: presentationMode ? 860 : compact ? 380 : 560,
+          maxWidth: presentationMode ? 860 : undefined,
           marginInline: presentationMode ? "auto" : undefined,
         }}
       >
@@ -306,7 +306,7 @@ export function DiagramBuilder({
       </div>
 
       {presentationMode && (
-        <div className="mx-auto w-full max-w-[720px] rounded-2xl border border-border bg-card/80 p-3">
+        <div className="mx-auto w-full max-w-[860px] rounded-2xl border border-border bg-card/80 p-3">
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-medium text-foreground">Change each circle's size</p>
             {onResetPresentation && (
@@ -350,7 +350,7 @@ export function DiagramBuilder({
               ))}
           </div>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            Size changes the category circle. Position changes how much of it enters You.
+            Size 100 matches the You circle. Position changes how much of it enters You.
           </p>
         </div>
       )}

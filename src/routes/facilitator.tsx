@@ -16,8 +16,8 @@ const makeOverlapDemo = (): DomainCircle[] => [
     id: "demo-work",
     label: "Work",
     percent: 50,
-    x: 0.5,
-    y: 0.14,
+    x: 0.62,
+    y: 0.16,
     enabled: true,
     color: "#7BA7C5",
   },
@@ -34,8 +34,8 @@ const makeOverlapDemo = (): DomainCircle[] => [
     id: "demo-close",
     label: "Close relationships",
     percent: 50,
-    x: 0.7,
-    y: 0.8,
+    x: 0.62,
+    y: 0.84,
     enabled: true,
     color: "#C58F8F",
   },
@@ -43,8 +43,8 @@ const makeOverlapDemo = (): DomainCircle[] => [
     id: "demo-community",
     label: "Community",
     percent: 50,
-    x: 0.3,
-    y: 0.8,
+    x: 0.18,
+    y: 0.7,
     enabled: true,
     color: "#8FA98A",
   },
@@ -52,8 +52,8 @@ const makeOverlapDemo = (): DomainCircle[] => [
     id: "demo-hobbies",
     label: "Hobbies",
     percent: 50,
-    x: 0.16,
-    y: 0.38,
+    x: 0.18,
+    y: 0.3,
     enabled: true,
     color: "#B592C1",
   },
@@ -334,7 +334,7 @@ function FacilitatorPage() {
           }`}
         >
           {s.kind === "overlap" ? (
-            <div className="w-full max-w-6xl py-8">
+            <div className="w-full max-w-7xl py-8">
               <div className="text-center">
                 <p className="text-sm uppercase tracking-[0.25em] text-accent mb-3">{s.subtitle}</p>
                 <h2 className="font-serif text-4xl md:text-5xl text-foreground">{s.title}</h2>
@@ -342,7 +342,7 @@ function FacilitatorPage() {
                   {s.body}
                 </p>
               </div>
-              <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1.65fr_0.75fr]">
+              <div className="mt-6 grid items-start gap-6 lg:grid-cols-[2fr_0.8fr]">
                 <DiagramBuilder
                   circles={overlapDemo}
                   onChange={setOverlapDemo}
