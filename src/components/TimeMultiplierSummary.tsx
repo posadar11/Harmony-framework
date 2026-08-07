@@ -68,6 +68,18 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
           ))}
         </ul>
       </div>
+
+      <div className="mt-4 rounded-xl border border-accent/30 bg-accent/5 p-4">
+        <p className="text-xs uppercase tracking-[0.13em] text-accent">Reflection</p>
+        <p className="mt-2 text-sm leading-relaxed text-foreground/85">
+          Intentionality means choosing overlaps that support the life you want. One hour can serve
+          more than one area, but whether that creates value is personal—it depends on how you
+          experience it.
+        </p>
+        <p className="mt-2 text-xs font-medium text-foreground">
+          The goal is not more overlap. It is more meaningful, chosen overlap.
+        </p>
+      </div>
     </section>
   );
 }
