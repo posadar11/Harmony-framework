@@ -3,10 +3,17 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { DiagramBuilder, StaticDiagram } from "@/components/DiagramBuilder";
 import { DiagramComparisonChart } from "@/components/DiagramComparisonChart";
+import { WeeklyAllocationForm } from "@/components/WeeklyAllocationForm";
+import { WeeklyPieChart } from "@/components/WeeklyPieChart";
 import { domainTimeShare } from "@/lib/diagram-geometry";
 import { makeStartingDiagram, type DomainCircle } from "@/lib/diagram-types";
 import { supabase } from "@/integrations/supabase/client";
-import { broadcastSubmission } from "@/lib/live-room";
+import { broadcastSubmission, broadcastWeeklySubmission } from "@/lib/live-room";
+import {
+  makeWeeklyAllocations,
+  weeklyAllocationTotal,
+  type WeeklyAllocation,
+} from "@/lib/weekly-allocation";
 
 function normalizeRoomCode(value: unknown): string {
   return typeof value === "string"
@@ -202,7 +209,7 @@ Also include exactly 3 reflective questions as "homework" - questions the person
     }
   });
 
-type Step = "ideal" | "current" | "loading" | "results";
+type Step = "weekly" | "weekly-result" | "ideal" | "current" | "loading" | "results";
 
 function JoinPage() {
   const { room } = Route.useSearch();
@@ -274,7 +281,11 @@ function RoomCodeEntry() {
 
 function ExercisePage({ room }: { room: string }) {
   const [name, setName] = useState("");
-  const [step, setStep] = useState<Step>("ideal");
+  const [step, setStep] = useState<Step>("weekly");
+  const [weekly, setWeekly] = useState<WeeklyAllocation[]>(makeWeeklyAllocations);
+  const [weeklySubmitting, setWeeklySubmitting] = useState(false);
+  const [weeklyDelivery, setWeeklyDelivery] = useState<"idle" | "sent" | "failed">("idle");
+  const [participantId, setParticipantId] = useState("");
 
   const makeExerciseDiagram = () =>
     makeStartingDiagram().filter((circle) => circle.label !== "Time for myself");
@@ -290,6 +301,28 @@ function ExercisePage({ room }: { room: string }) {
   const [saved, setSaved] = useState(false);
   const [roomDelivery, setRoomDelivery] = useState<"idle" | "sent" | "failed">("idle");
   const [error, setError] = useState<string | null>(null);
+
+  const handleWeeklySubmit = async () => {
+    if (weeklyAllocationTotal(weekly) !== 100 || weeklySubmitting) return;
+    setWeeklySubmitting(true);
+    const id =
+      participantId ||
+      (typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    if (!participantId) setParticipantId(id);
+    try {
+      const delivered = await broadcastWeeklySubmission(room, {
+        participantId: id,
+        name: name.trim() || undefined,
+        allocations: weekly,
+      });
+      setWeeklyDelivery(delivered ? "sent" : "failed");
+      setStep("weekly-result");
+    } finally {
+      setWeeklySubmitting(false);
+    }
+  };
 
   const handleGetInsights = async () => {
     setStep("loading");
@@ -392,7 +425,9 @@ function ExercisePage({ room }: { room: string }) {
             Build your Harmony
           </h1>
           <p className="mt-3 text-sm md:text-base text-muted-foreground">
-            {step === "ideal" && "First, shape the diagram for how you want life to be."}
+            {step === "weekly" && "Think about a typical week and divide all of your time."}
+            {step === "weekly-result" && "Here is the shape of your typical week."}
+            {step === "ideal" && "Next, shape the diagram for how you want life to be."}
             {step === "current" && "Now, shape the diagram for how life is right now."}
             {step === "loading" && "Comparing your Ideal and Current balance..."}
             {step === "results" && "Here's how your Current and Ideal compare."}
@@ -404,7 +439,7 @@ function ExercisePage({ room }: { room: string }) {
           )}
         </header>
 
-        {(step === "ideal" || step === "current") && (
+        {(step === "weekly" || step === "ideal" || step === "current") && (
           <div className="mt-6 rounded-2xl border border-border bg-card/70 p-4">
             <label className="block text-sm font-medium text-foreground">
               Your name <span className="text-muted-foreground font-normal">(optional)</span>
@@ -420,10 +455,60 @@ function ExercisePage({ room }: { room: string }) {
         )}
 
         <div className="mt-6">
+          {step === "weekly" && (
+            <WeeklyAllocationForm
+              allocations={weekly}
+              onChange={setWeekly}
+              onSubmit={handleWeeklySubmit}
+              submitting={weeklySubmitting}
+            />
+          )}
+
+          {step === "weekly-result" && (
+            <div>
+              {weeklyDelivery === "sent" && (
+                <div className="mb-5 rounded-xl border border-secondary/50 bg-secondary/10 px-4 py-3 text-center text-sm text-foreground/80">
+                  Your typical week was added to the room average.
+                </div>
+              )}
+              {weeklyDelivery === "failed" && (
+                <div className="mb-5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-center text-sm text-foreground/80">
+                  Your chart is ready, but it could not reach the facilitator screen. Ask the
+                  facilitator to keep the room open.
+                  <button
+                    type="button"
+                    onClick={handleWeeklySubmit}
+                    disabled={weeklySubmitting}
+                    className="ml-2 font-medium text-destructive underline underline-offset-2 disabled:opacity-50"
+                  >
+                    {weeklySubmitting ? "Retrying…" : "Try again"}
+                  </button>
+                </div>
+              )}
+              <WeeklyPieChart allocations={weekly} />
+              <div className="mt-7 grid gap-3 sm:grid-cols-[auto_1fr]">
+                <button
+                  type="button"
+                  onClick={() => setStep("weekly")}
+                  className="rounded-full border border-border px-6 py-4 text-sm font-medium text-foreground hover:border-accent"
+                >
+                  Edit percentages
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep("ideal")}
+                  className="rounded-full bg-primary px-6 py-4 text-base font-medium text-primary-foreground shadow-lg hover:bg-primary/90"
+                >
+                  Continue to Ideal
+                </button>
+              </div>
+            </div>
+          )}
+
           {step === "ideal" && (
             <div>
               <h2 className="font-serif text-xl text-foreground text-center mb-3">
-                Step 1 of 2 — Ideal
+                Exercise 2 · Step 1 of 2 — Ideal
               </h2>
               <DiagramBuilder circles={ideal} onChange={setIdeal} showYou />
               <div className="sticky bottom-4 mt-8">
@@ -440,7 +525,7 @@ function ExercisePage({ room }: { room: string }) {
           {step === "current" && (
             <div>
               <h2 className="font-serif text-xl text-foreground text-center mb-3">
-                Step 2 of 2 — Current
+                Exercise 2 · Step 2 of 2 — Current
               </h2>
               <DiagramBuilder circles={current} onChange={setCurrent} showYou />
               <div className="sticky bottom-4 mt-8">

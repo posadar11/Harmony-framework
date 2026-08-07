@@ -1,6 +1,7 @@
 import type { DomainCircle } from "@/lib/diagram-types";
 import { DEFAULT_DOMAINS } from "@/lib/diagram-types";
 import { domainTimeShare } from "@/lib/diagram-geometry";
+import type { WeeklySubmission } from "@/lib/weekly-allocation";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface RoomSubmission {
@@ -57,6 +58,18 @@ export function averageDiagram(
 }
 
 export async function broadcastSubmission(room: string, submission: RoomSubmission) {
+  return broadcastRoomEvent(room, "diagram-submitted", submission);
+}
+
+export async function broadcastWeeklySubmission(room: string, submission: WeeklySubmission) {
+  return broadcastRoomEvent(room, "weekly-submitted", submission);
+}
+
+async function broadcastRoomEvent(
+  room: string,
+  event: "diagram-submitted" | "weekly-submitted",
+  payload: RoomSubmission | WeeklySubmission,
+) {
   if (!room) return false;
   const channel = supabase.channel(`harmony-room-${room}`);
 
@@ -70,8 +83,8 @@ export async function broadcastSubmission(room: string, submission: RoomSubmissi
       if (status !== "SUBSCRIBED") return;
       const result = await channel.send({
         type: "broadcast",
-        event: "diagram-submitted",
-        payload: submission,
+        event,
+        payload,
       });
       window.clearTimeout(timeout);
       await supabase.removeChannel(channel);

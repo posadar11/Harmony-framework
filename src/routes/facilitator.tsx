@@ -4,8 +4,10 @@ import { facilitatorAgenda, tracks } from "@/content/workshop";
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { StaticDiagram } from "@/components/DiagramBuilder";
+import { WeeklyPieChart } from "@/components/WeeklyPieChart";
 import { type DomainCircle } from "@/lib/diagram-types";
 import { averageDiagram, createRoomCode, type RoomSubmission } from "@/lib/live-room";
+import { averageWeeklyAllocations, type WeeklySubmission } from "@/lib/weekly-allocation";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/facilitator")({
@@ -79,6 +81,7 @@ function FacilitatorPage() {
   const [joinUrl, setJoinUrl] = useState<string>("");
   const [roomCode, setRoomCode] = useState("");
   const [roomSubmissions, setRoomSubmissions] = useState<RoomSubmission[]>([]);
+  const [weeklySubmissions, setWeeklySubmissions] = useState<WeeklySubmission[]>([]);
   const [showRoomAverage, setShowRoomAverage] = useState(false);
   const [liveConnectionError, setLiveConnectionError] = useState<string | null>(null);
 
@@ -102,11 +105,15 @@ function FacilitatorPage() {
   useEffect(() => {
     if (!roomCode || typeof window === "undefined") return;
     const storageKey = `hor.room.${roomCode}`;
+    const weeklyStorageKey = `hor.room.${roomCode}.weekly`;
     try {
       const saved = window.localStorage.getItem(storageKey);
       setRoomSubmissions(saved ? (JSON.parse(saved) as RoomSubmission[]) : []);
+      const savedWeekly = window.localStorage.getItem(weeklyStorageKey);
+      setWeeklySubmissions(savedWeekly ? (JSON.parse(savedWeekly) as WeeklySubmission[]) : []);
     } catch {
       setRoomSubmissions([]);
+      setWeeklySubmissions([]);
     }
 
     if (!isSupabaseConfigured()) return;
@@ -120,6 +127,20 @@ function FacilitatorPage() {
           setRoomSubmissions((existing) => {
             const next = [...existing, payload as RoomSubmission];
             window.localStorage.setItem(storageKey, JSON.stringify(next));
+            return next;
+          });
+        })
+        .on("broadcast", { event: "weekly-submitted" }, ({ payload }) => {
+          setWeeklySubmissions((existing) => {
+            const submission = payload as WeeklySubmission;
+            const previousIndex = existing.findIndex(
+              (item) => item.participantId === submission.participantId,
+            );
+            const next =
+              previousIndex === -1
+                ? [...existing, submission]
+                : existing.map((item, index) => (index === previousIndex ? submission : item));
+            window.localStorage.setItem(weeklyStorageKey, JSON.stringify(next));
             return next;
           });
         })
@@ -144,6 +165,7 @@ function FacilitatorPage() {
     window.localStorage.setItem("hor.facilitator.room", room);
     setRoomCode(room);
     setRoomSubmissions([]);
+    setWeeklySubmissions([]);
     setShowRoomAverage(false);
   };
 
@@ -251,9 +273,9 @@ function FacilitatorPage() {
   slides.push({
     kind: "qr",
     session: 0,
-    title: "Build your own diagram",
+    title: "Map your typical week",
     subtitle: "Your turn",
-    body: "Scan the permanent code, then enter the room code shown below.",
+    body: "Scan the permanent code, enter the room code, then divide a typical week into 100%.",
   });
 
   // Four focused prompt slides: Current aspects, Ideal aspects,
@@ -361,6 +383,7 @@ function FacilitatorPage() {
               {showRoomAverage ? (
                 <RoomAverage
                   submissions={roomSubmissions}
+                  weeklySubmissions={weeklySubmissions}
                   roomCode={roomCode}
                   connectionError={liveConnectionError}
                 />
@@ -409,7 +432,7 @@ function FacilitatorPage() {
                 >
                   {showRoomAverage
                     ? "Show QR code"
-                    : `Show room average (${roomSubmissions.length})`}
+                    : `Show room average (${weeklySubmissions.length || roomSubmissions.length})`}
                 </button>
                 <button
                   onClick={startNewRoom}
@@ -657,23 +680,27 @@ function FacilitatorPage() {
 
 function RoomAverage({
   submissions,
+  weeklySubmissions,
   roomCode,
   connectionError,
 }: {
   submissions: RoomSubmission[];
+  weeklySubmissions: WeeklySubmission[];
   roomCode: string;
   connectionError: string | null;
 }) {
   const current = averageDiagram(submissions, "current");
   const ideal = averageDiagram(submissions, "ideal");
+  const weeklyAverage = averageWeeklyAllocations(weeklySubmissions);
   const liveConnectionAvailable = isSupabaseConfigured();
 
   return (
     <div>
-      <h2 className="font-serif text-4xl md:text-5xl text-foreground">Room average</h2>
+      <h2 className="font-serif text-4xl md:text-5xl text-foreground">Typical week room average</h2>
       <p className="mt-3 text-lg text-foreground/80">
-        {submissions.length} {submissions.length === 1 ? "participant" : "participants"} submitted ·
-        Room {roomCode}
+        {weeklySubmissions.length} {weeklySubmissions.length === 1 ? "participant" : "participants"}
+        {" submitted · Room "}
+        {roomCode}
       </p>
       {!liveConnectionAvailable && (
         <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-3 text-sm text-foreground/80">
@@ -686,11 +713,21 @@ function RoomAverage({
           {connectionError} Refresh the page or start a new room to retry.
         </div>
       )}
-      {submissions.length === 0 ? (
+      {weeklySubmissions.length === 0 ? (
         <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-border bg-card/60 p-10 text-muted-foreground">
-          Waiting for participants to press Submit…
+          Waiting for participants to submit their typical week…
         </div>
       ) : (
+        <div className="mx-auto mt-8 max-w-4xl text-left">
+          <WeeklyPieChart
+            allocations={weeklyAverage}
+            title="The room's typical week"
+            subtitle="The average percentage reported across everyone who submitted."
+            compact
+          />
+        </div>
+      )}
+      {submissions.length > 0 && (
         <div className="mt-8 grid gap-6 md:grid-cols-2">
           <StaticDiagram title="Average Current" circles={current} showYou />
           <StaticDiagram title="Average Ideal" circles={ideal} showYou />
