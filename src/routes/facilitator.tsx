@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/SiteHeader";
 import { facilitatorAgenda, tracks } from "@/content/workshop";
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { StaticDiagram } from "@/components/DiagramBuilder";
+import { DiagramBuilder, StaticDiagram } from "@/components/DiagramBuilder";
+import { TimeMultiplierSummary } from "@/components/TimeMultiplierSummary";
 import { WeeklyPieChart } from "@/components/WeeklyPieChart";
 import { type DomainCircle } from "@/lib/diagram-types";
 import { createRoomCode } from "@/lib/live-room";
@@ -35,6 +36,7 @@ type Slide =
   | { kind: "title"; session: number; title: string; subtitle: string; body: string }
   | { kind: "scenario"; session: number; title: string; subtitle: string; body: string }
   | { kind: "exercise"; session: number; title: string; subtitle: string; body: string }
+  | { kind: "overlap"; session: number; title: string; subtitle: string; body: string }
   | {
       kind: "diagram";
       session: number;
@@ -81,6 +83,53 @@ function FacilitatorPage() {
   const [joinUrl, setJoinUrl] = useState<string>("");
   const [roomCode, setRoomCode] = useState("");
   const [weeklySubmissions, setWeeklySubmissions] = useState<WeeklySubmission[]>([]);
+  const [overlapDemo, setOverlapDemo] = useState<DomainCircle[]>([
+    {
+      id: "demo-work",
+      label: "Work",
+      percent: 40,
+      x: 0.47,
+      y: 0.45,
+      enabled: true,
+      color: "#7BA7C5",
+    },
+    {
+      id: "demo-family",
+      label: "Family",
+      percent: 30,
+      x: 0.58,
+      y: 0.5,
+      enabled: true,
+      color: "#B8A05E",
+    },
+    {
+      id: "demo-close",
+      label: "Close relationships",
+      percent: 25,
+      x: 0.43,
+      y: 0.6,
+      enabled: true,
+      color: "#C58F8F",
+    },
+    {
+      id: "demo-community",
+      label: "Community",
+      percent: 20,
+      x: 0.35,
+      y: 0.5,
+      enabled: true,
+      color: "#8FA98A",
+    },
+    {
+      id: "demo-hobbies",
+      label: "Hobbies",
+      percent: 15,
+      x: 0.62,
+      y: 0.38,
+      enabled: true,
+      color: "#B592C1",
+    },
+  ]);
   const [showRoomAverage, setShowRoomAverage] = useState(false);
   const [liveConnectionError, setLiveConnectionError] = useState<string | null>(null);
 
@@ -156,69 +205,16 @@ function FacilitatorPage() {
     setShowRoomAverage(false);
   };
 
-  // Sample diagrams used to illustrate the concept during presentation.
-  // Current: Work receives most of the allocation; other domains are smaller and isolated.
-  const currentSample: DomainCircle[] = [
-    { id: "s-wk", label: "Work", percent: 60, x: 0.56, y: 0.56, enabled: true, color: "#7BA7C5" },
-    {
-      id: "s-cr",
-      label: "Close relationships",
-      percent: 10,
-      x: 0.76,
-      y: 0.26,
-      enabled: true,
-      color: "#C58F8F",
-    },
-    { id: "s-fm", label: "Family", percent: 15, x: 0.24, y: 0.74, enabled: true, color: "#B8A05E" },
-    {
-      id: "s-cm",
-      label: "Community",
-      percent: 5,
-      x: 0.24,
-      y: 0.32,
-      enabled: true,
-      color: "#8FA98A",
-    },
-    {
-      id: "s-hb",
-      label: "Hobbies",
-      percent: 10,
-      x: 0.74,
-      y: 0.72,
-      enabled: true,
-      color: "#B592C1",
-    },
-  ];
-
-  // Ideal: Time is distributed more evenly, with real overlap between domains.
-  const idealSample: DomainCircle[] = [
-    { id: "i-wk", label: "Work", percent: 35, x: 0.6, y: 0.6, enabled: true, color: "#7BA7C5" },
-    {
-      id: "i-cr",
-      label: "Close relationships",
-      percent: 20,
-      x: 0.7,
-      y: 0.3,
-      enabled: true,
-      color: "#C58F8F",
-    },
-    { id: "i-fm", label: "Family", percent: 20, x: 0.3, y: 0.3, enabled: true, color: "#B8A05E" },
-    {
-      id: "i-cm",
-      label: "Community",
-      percent: 10,
-      x: 0.3,
-      y: 0.7,
-      enabled: true,
-      color: "#8FA98A",
-    },
-    { id: "i-hb", label: "Hobbies", percent: 15, x: 0.7, y: 0.7, enabled: true, color: "#B592C1" },
-  ];
-
-  // Flow: framework intro → current vs ideal → QR → then the reflection questions.
+  // Flow: room exercise → evidence → intentionality → live overlap demonstration → reflection.
   const slides: Slide[] = [];
 
-  // Set up the problem before introducing the framework.
+  slides.push({
+    kind: "qr",
+    session: 0,
+    title: "Map your typical week",
+    subtitle: "Exercise 1 · Your turn",
+    body: "Scan the permanent code, enter the room code, then divide a typical week into 100%.",
+  });
   slides.push({
     kind: "statement",
     session: 0,
@@ -236,9 +232,9 @@ function FacilitatorPage() {
   slides.push({
     kind: "intro",
     session: 0,
-    title: "The framework",
-    subtitle: "How the diagram works",
-    body: "Every diagram begins with one circle. Your time, your energy, your attention. Every relationship is a circle that overlaps this one.",
+    title: "Be intentional with the same 100%",
+    subtitle: "The relationship lens",
+    body: "Your week is finite, but the same hour can contribute to more than one relationship. The question is not only where time goes, but what—and who—that time serves.",
     chips: [
       { label: "Work", color: "#7BA7C5" },
       { label: "Close relationships", color: "#C58F8F" },
@@ -249,44 +245,32 @@ function FacilitatorPage() {
   });
 
   slides.push({
-    kind: "diagram",
-    session: 0,
-    title: "Current vs Ideal",
-    subtitle: "See the gap",
-    body: "Compare life as it is today against the shape you want. The gap between the two is where harmony work happens.",
-    circles: idealSample,
-    compareCircles: currentSample,
-  });
-  slides.push({
-    kind: "qr",
-    session: 0,
-    title: "Map your typical week",
-    subtitle: "Your turn",
-    body: "Scan the permanent code, enter the room code, then divide a typical week into 100%.",
-  });
-
-  // Four focused prompt slides: Current aspects, Ideal aspects,
-  // Renegotiation, and the Commitment.
-  slides.push({
     kind: "scenario",
     session: 1,
-    title: "Your Current",
-    subtitle: "Aspects to consider",
-    body: "Think about a recent week. Where did your time and attention actually go? What obligations, habits, and unspoken agreements shape each circle today? Which circles grew because you chose them, and which grew because no one stopped them?",
+    title: "Time can create more than one kind of value",
+    subtitle: "The multiplier",
+    body: "A conversation with a family member who is also a colleague can strengthen family and work at the same time. A walk with a friend can serve close relationships and health. Shared time does not create extra hours—it lets one hour contribute to more than one part of life.",
+  });
+  slides.push({
+    kind: "overlap",
+    session: 1,
+    title: "Move the circles. Watch value multiply.",
+    subtitle: "Live overlap demonstration",
+    body: "Drag domains together to show shared moments. The week remains 100%, while the combined value across relationships and activities can rise above 100%.",
   });
   slides.push({
     kind: "scenario",
     session: 2,
-    title: "Your Ideal",
-    subtitle: "What you would move",
-    body: "Now picture the shape you actually want. Which circles need more overlap with you? Which need less? Where do you want space that belongs only to you? Draw it exactly as you want it, not as you think it should be.",
+    title: "Which overlaps multiply what matters?",
+    subtitle: "A question of intention",
+    body: "Which relationships could be strengthened through time you already spend? Where could work, family, friendship, community, or hobbies support one another instead of competing for separate hours?",
   });
   slides.push({
     kind: "scenario",
-    session: 3,
-    title: "The renegotiation",
-    subtitle: "From Current to Ideal",
-    body: "Between your Current and your Ideal there is a gap. Every gap has a name: a person, an agreement, a habit. What would you need to say, and to whom, for one circle to move? What is the ideal you are moving toward, and for what reason?",
+    session: 2,
+    title: "Not every overlap is healthy",
+    subtitle: "Boundaries still matter",
+    body: "An overlap can multiply meaning, or it can erase recovery. When work enters every family moment, the same mechanism becomes boundary erosion. Intentional overlap is chosen; unhealthy overlap feels unavoidable.",
   });
   slides.push({
     kind: "exercise",
@@ -299,6 +283,7 @@ function FacilitatorPage() {
   useEffect(() => {
     if (!presenting) return;
     const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement | null)?.closest("input, button, a, textarea, select")) return;
       if (e.key === "ArrowRight" || e.key === " ")
         setSlide((i) => Math.min(slides.length - 1, i + 1));
       else if (e.key === "ArrowLeft") setSlide((i) => Math.max(0, i - 1));
@@ -340,8 +325,28 @@ function FacilitatorPage() {
             Exit (Esc)
           </button>
         </div>
-        <div className="flex-1 flex items-center justify-center px-12 overflow-y-auto">
-          {s.kind === "diagram" ? (
+        <div
+          className={`flex-1 flex justify-center px-12 overflow-y-auto ${
+            s.kind === "overlap" ? "items-start" : "items-center"
+          }`}
+        >
+          {s.kind === "overlap" ? (
+            <div className="w-full max-w-6xl py-8">
+              <div className="text-center">
+                <p className="text-sm uppercase tracking-[0.25em] text-accent mb-3">{s.subtitle}</p>
+                <h2 className="font-serif text-4xl md:text-5xl text-foreground">{s.title}</h2>
+                <p className="mx-auto mt-4 max-w-3xl text-lg text-foreground/80 leading-relaxed">
+                  {s.body}
+                </p>
+              </div>
+              <div className="mt-8 grid items-start gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                <DiagramBuilder circles={overlapDemo} onChange={setOverlapDemo} compact showYou />
+                <div className="lg:sticky lg:top-4">
+                  <TimeMultiplierSummary circles={overlapDemo} />
+                </div>
+              </div>
+            </div>
+          ) : s.kind === "diagram" ? (
             <div className="w-full max-w-6xl">
               <div className="text-center">
                 <p className="text-sm uppercase tracking-[0.25em] text-accent mb-3">{s.subtitle}</p>
@@ -608,20 +613,21 @@ function FacilitatorPage() {
             Live presenter flows you can run from a big screen.
           </p>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <Link
-              to="/facilitator/diagram"
-              className="group rounded-2xl border border-border bg-card p-6 hover:border-accent transition-colors"
+            <button
+              type="button"
+              onClick={enterPresent}
+              className="group rounded-2xl border border-border bg-card p-6 text-left hover:border-accent transition-colors"
             >
               <p className="text-xs uppercase tracking-[0.18em] text-accent">Workshop</p>
               <h3 className="mt-2 font-serif text-xl text-foreground">The Diagram</h3>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                A 4-step live flow: intro, build the Current diagram, build the Ideal, then a QR
-                code for participants to submit their own.
+                An 8-slide live flow: room exercise, average, boundary statistics, intentional
+                overlap, and a dynamic time-multiplier demonstration.
               </p>
               <span className="mt-4 inline-block text-sm text-accent group-hover:underline">
                 Open presenter →
               </span>
-            </Link>
+            </button>
           </div>
         </section>
 

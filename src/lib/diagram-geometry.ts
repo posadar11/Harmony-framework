@@ -92,3 +92,37 @@ export function estimateUniqueCoverage(circles: DomainCircle[], sampleGrid = 120
 
   return pointsInsideYou === 0 ? 0 : (coveredPoints / pointsInsideYou) * 100;
 }
+
+/** Approximate the portion of You covered by both domain circles. */
+export function estimatePairOverlap(first: DomainCircle, second: DomainCircle, sampleGrid = 80) {
+  if (!first.enabled || !second.enabled) return 0;
+  const firstRadiusSquared = domainRadiusRatio(first.percent) ** 2;
+  const secondRadiusSquared = domainRadiusRatio(second.percent) ** 2;
+  const youRadiusSquared = YOU_RADIUS_RATIO * YOU_RADIUS_RATIO;
+  let pointsInsideYou = 0;
+  let sharedPoints = 0;
+
+  for (let row = 0; row < sampleGrid; row++) {
+    const y = (row + 0.5) / sampleGrid;
+    for (let column = 0; column < sampleGrid; column++) {
+      const x = (column + 0.5) / sampleGrid;
+      const youDx = x - 0.5;
+      const youDy = y - 0.5;
+      if (youDx * youDx + youDy * youDy > youRadiusSquared) continue;
+      pointsInsideYou++;
+
+      const firstDx = x - first.x;
+      const firstDy = y - first.y;
+      const secondDx = x - second.x;
+      const secondDy = y - second.y;
+      if (
+        firstDx * firstDx + firstDy * firstDy <= firstRadiusSquared &&
+        secondDx * secondDx + secondDy * secondDy <= secondRadiusSquared
+      ) {
+        sharedPoints++;
+      }
+    }
+  }
+
+  return pointsInsideYou === 0 ? 0 : (sharedPoints / pointsInsideYou) * 100;
+}
