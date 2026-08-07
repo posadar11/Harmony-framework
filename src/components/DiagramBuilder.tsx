@@ -7,6 +7,7 @@ import {
   domainRadiusRatio,
   domainTimeShare,
   estimateUniqueCoverage,
+  PRESENTATION_DOMAIN_RADIUS_RATIO,
   PRESENTATION_YOU_RADIUS_RATIO,
   YOU_RADIUS_RATIO,
 } from "@/lib/diagram-geometry";
@@ -99,6 +100,9 @@ export function DiagramBuilder({
   };
 
   const youRadiusRatio = presentationMode ? PRESENTATION_YOU_RADIUS_RATIO : YOU_RADIUS_RATIO;
+  const domainBaseRadiusRatio = presentationMode
+    ? PRESENTATION_DOMAIN_RADIUS_RATIO
+    : youRadiusRatio;
 
   const update = (id: string, patch: Partial<DomainCircle>) => {
     replaceCircles(circlesRef.current.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -106,10 +110,13 @@ export function DiagramBuilder({
 
   const grossAllocation = circles
     .filter((circle) => circle.enabled)
-    .reduce((sum, circle) => sum + domainTimeShare(circle, youRadiusRatio), 0);
+    .reduce(
+      (sum, circle) => sum + domainTimeShare(circle, youRadiusRatio, domainBaseRadiusRatio),
+      0,
+    );
   const uniqueCoverage = useMemo(
-    () => estimateUniqueCoverage(circles, 120, youRadiusRatio),
-    [circles, youRadiusRatio],
+    () => estimateUniqueCoverage(circles, 120, youRadiusRatio, domainBaseRadiusRatio),
+    [circles, domainBaseRadiusRatio, youRadiusRatio],
   );
   const remainingCoverage = Math.max(0, 100 - uniqueCoverage);
   const sharedAllocation = Math.max(0, grossAllocation - uniqueCoverage);
@@ -118,7 +125,7 @@ export function DiagramBuilder({
     const percent = Math.round(clamp(requested, MIN_ALLOCATION, 100));
     const circle = circlesRef.current.find((item) => item.id === id);
     if (!circle) return;
-    const position = constrainDomainToCanvas(circle.x, circle.y, percent, youRadiusRatio);
+    const position = constrainDomainToCanvas(circle.x, circle.y, percent, domainBaseRadiusRatio);
     update(id, { percent, ...position });
   };
 
@@ -128,7 +135,7 @@ export function DiagramBuilder({
       return;
     }
     const percent = Math.max(MIN_ALLOCATION, Math.min(100, circle.percent || 20));
-    const position = constrainDomainToCanvas(circle.x, circle.y, percent, youRadiusRatio);
+    const position = constrainDomainToCanvas(circle.x, circle.y, percent, domainBaseRadiusRatio);
     update(circle.id, { enabled: true, percent, ...position });
   };
 
@@ -187,7 +194,7 @@ export function DiagramBuilder({
     const desiredX = drag.startX + deltaX / rect.width;
     const desiredY = drag.startY + deltaY / rect.height;
     const position = showYou
-      ? constrainDomainToCanvas(desiredX, desiredY, circle.percent, youRadiusRatio)
+      ? constrainDomainToCanvas(desiredX, desiredY, circle.percent, domainBaseRadiusRatio)
       : { x: clamp(desiredX, 0.05, 0.95), y: clamp(desiredY, 0.05, 0.95) };
     update(drag.id, {
       ...position,
@@ -219,8 +226,8 @@ export function DiagramBuilder({
         className="relative w-full rounded-2xl border border-border bg-card/60 venn-bg overflow-hidden touch-none select-none"
         style={{
           aspectRatio: "1 / 1",
-          maxHeight: presentationMode ? 680 : compact ? 380 : 560,
-          maxWidth: presentationMode ? 680 : undefined,
+          maxHeight: presentationMode ? 720 : compact ? 380 : 560,
+          maxWidth: presentationMode ? 720 : undefined,
           marginInline: presentationMode ? "auto" : undefined,
         }}
       >
@@ -253,10 +260,10 @@ export function DiagramBuilder({
           .filter((c) => c.enabled)
           .map((c) => {
             const r = showYou
-              ? size * domainRadiusRatio(c.percent, youRadiusRatio)
+              ? size * domainRadiusRatio(c.percent, domainBaseRadiusRatio)
               : radiusFor(c.percent, size);
             const position = showYou
-              ? constrainDomainToCanvas(c.x, c.y, c.percent, youRadiusRatio)
+              ? constrainDomainToCanvas(c.x, c.y, c.percent, domainBaseRadiusRatio)
               : c;
             const cx = position.x * size;
             const cy = position.y * size;
@@ -283,7 +290,9 @@ export function DiagramBuilder({
                   style={{ maxWidth: r * 1.7 }}
                 >
                   {showYou
-                    ? `${c.label} · ${Math.round(domainTimeShare(c, youRadiusRatio))}%`
+                    ? `${c.label} · ${Math.round(
+                        domainTimeShare(c, youRadiusRatio, domainBaseRadiusRatio),
+                      )}%`
                     : c.label}
                 </span>
               </div>
@@ -297,7 +306,7 @@ export function DiagramBuilder({
       </div>
 
       {presentationMode && (
-        <div className="mx-auto w-full max-w-[680px] rounded-2xl border border-border bg-card/80 p-3">
+        <div className="mx-auto w-full max-w-[720px] rounded-2xl border border-border bg-card/80 p-3">
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-medium text-foreground">Change each circle's size</p>
             {onResetPresentation && (
