@@ -6,7 +6,7 @@ import QRCode from "qrcode";
 import { StaticDiagram } from "@/components/DiagramBuilder";
 import { WeeklyPieChart } from "@/components/WeeklyPieChart";
 import { type DomainCircle } from "@/lib/diagram-types";
-import { averageDiagram, createRoomCode, type RoomSubmission } from "@/lib/live-room";
+import { createRoomCode } from "@/lib/live-room";
 import { averageWeeklyAllocations, type WeeklySubmission } from "@/lib/weekly-allocation";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 
@@ -80,7 +80,6 @@ function FacilitatorPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [joinUrl, setJoinUrl] = useState<string>("");
   const [roomCode, setRoomCode] = useState("");
-  const [roomSubmissions, setRoomSubmissions] = useState<RoomSubmission[]>([]);
   const [weeklySubmissions, setWeeklySubmissions] = useState<WeeklySubmission[]>([]);
   const [showRoomAverage, setShowRoomAverage] = useState(false);
   const [liveConnectionError, setLiveConnectionError] = useState<string | null>(null);
@@ -104,15 +103,11 @@ function FacilitatorPage() {
 
   useEffect(() => {
     if (!roomCode || typeof window === "undefined") return;
-    const storageKey = `hor.room.${roomCode}`;
     const weeklyStorageKey = `hor.room.${roomCode}.weekly`;
     try {
-      const saved = window.localStorage.getItem(storageKey);
-      setRoomSubmissions(saved ? (JSON.parse(saved) as RoomSubmission[]) : []);
       const savedWeekly = window.localStorage.getItem(weeklyStorageKey);
       setWeeklySubmissions(savedWeekly ? (JSON.parse(savedWeekly) as WeeklySubmission[]) : []);
     } catch {
-      setRoomSubmissions([]);
       setWeeklySubmissions([]);
     }
 
@@ -123,13 +118,6 @@ function FacilitatorPage() {
     try {
       channel = supabase
         .channel(`harmony-room-${roomCode}`)
-        .on("broadcast", { event: "diagram-submitted" }, ({ payload }) => {
-          setRoomSubmissions((existing) => {
-            const next = [...existing, payload as RoomSubmission];
-            window.localStorage.setItem(storageKey, JSON.stringify(next));
-            return next;
-          });
-        })
         .on("broadcast", { event: "weekly-submitted" }, ({ payload }) => {
           setWeeklySubmissions((existing) => {
             const submission = payload as WeeklySubmission;
@@ -164,7 +152,6 @@ function FacilitatorPage() {
     const room = createRoomCode();
     window.localStorage.setItem("hor.facilitator.room", room);
     setRoomCode(room);
-    setRoomSubmissions([]);
     setWeeklySubmissions([]);
     setShowRoomAverage(false);
   };
@@ -382,7 +369,6 @@ function FacilitatorPage() {
               <p className="text-sm uppercase tracking-[0.25em] text-accent mb-4">{s.subtitle}</p>
               {showRoomAverage ? (
                 <RoomAverage
-                  submissions={roomSubmissions}
                   weeklySubmissions={weeklySubmissions}
                   roomCode={roomCode}
                   connectionError={liveConnectionError}
@@ -432,7 +418,7 @@ function FacilitatorPage() {
                 >
                   {showRoomAverage
                     ? "Show QR code"
-                    : `Show room average (${weeklySubmissions.length || roomSubmissions.length})`}
+                    : `Show room average (${weeklySubmissions.length})`}
                 </button>
                 <button
                   onClick={startNewRoom}
@@ -679,18 +665,14 @@ function FacilitatorPage() {
 }
 
 function RoomAverage({
-  submissions,
   weeklySubmissions,
   roomCode,
   connectionError,
 }: {
-  submissions: RoomSubmission[];
   weeklySubmissions: WeeklySubmission[];
   roomCode: string;
   connectionError: string | null;
 }) {
-  const current = averageDiagram(submissions, "current");
-  const ideal = averageDiagram(submissions, "ideal");
   const weeklyAverage = averageWeeklyAllocations(weeklySubmissions);
   const liveConnectionAvailable = isSupabaseConfigured();
 
@@ -725,12 +707,6 @@ function RoomAverage({
             subtitle="The average percentage reported across everyone who submitted."
             compact
           />
-        </div>
-      )}
-      {submissions.length > 0 && (
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <StaticDiagram title="Average Current" circles={current} showYou />
-          <StaticDiagram title="Average Ideal" circles={ideal} showYou />
         </div>
       )}
     </div>
