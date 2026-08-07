@@ -30,7 +30,10 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
       <div className="mt-5 space-y-2 text-center">
         <div className="rounded-xl bg-muted/60 p-4">
           <strong className="font-mono text-3xl text-foreground">{Math.round(uniqueTime)}%</strong>
-          <p className="mt-1 text-xs text-muted-foreground">of your actual week is inside You</p>
+          <p className="mt-1 text-xs font-medium text-foreground">of your week is accounted for</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Time represented by at least one category. Overlaps count once here.
+          </p>
         </div>
         <div className="font-serif text-xl text-accent">+</div>
         <div className="rounded-xl bg-accent/10 p-4">
