@@ -155,14 +155,16 @@ export function estimateSharedCoverage(
 }
 
 /**
- * Treat the union of all presentation circles as one fixed 100% week.
- * Each category receives its portion of that union, so overlapping portions
- * appear in every category they serve and the category total can exceed 100%.
+ * Measure each presentation category as a portion of the You circle.
+ * A Size 100 category centered on You therefore measures exactly 100%.
+ * Overlapping portions appear in every category they serve, so the category
+ * total can exceed the uniquely represented portion of the week.
  */
 export function estimateCategoryDistribution(
   circles: DomainCircle[],
   sampleGrid = 120,
-  domainBaseRadiusRatio = YOU_RADIUS_RATIO,
+  youRadiusRatio = YOU_RADIUS_RATIO,
+  domainBaseRadiusRatio = youRadiusRatio,
 ) {
   const domains = circles
     .filter((circle) => circle.enabled)
@@ -176,12 +178,18 @@ export function estimateCategoryDistribution(
     }));
   const categoryCounts = domains.map(() => 0);
   const pairCounts = new Map<string, number>();
+  let pointsInsideYou = 0;
   let unionPoints = 0;
+  const youRadiusSquared = youRadiusRatio * youRadiusRatio;
 
   for (let row = 0; row < sampleGrid; row++) {
     const y = (row + 0.5) / sampleGrid;
     for (let column = 0; column < sampleGrid; column++) {
       const x = (column + 0.5) / sampleGrid;
+      const youDx = x - 0.5;
+      const youDy = y - 0.5;
+      if (youDx * youDx + youDy * youDy > youRadiusSquared) continue;
+      pointsInsideYou++;
       const covered: number[] = [];
       domains.forEach((domain, index) => {
         const dx = x - domain.x;
@@ -202,12 +210,14 @@ export function estimateCategoryDistribution(
     }
   }
 
-  if (unionPoints === 0) {
+  if (pointsInsideYou === 0) {
     return {
       categories: [],
       pairOverlaps: [],
       total: 0,
       displayTotal: 0,
+      uniqueCoverage: 0,
+      displayUniqueCoverage: 0,
       overlapValue: 0,
     };
   }
@@ -216,9 +226,10 @@ export function estimateCategoryDistribution(
     id: domain.id,
     label: domain.label,
     color: domain.color,
-    percent: (categoryCounts[index] / unionPoints) * 100,
+    percent: (categoryCounts[index] / pointsInsideYou) * 100,
   }));
   const total = categories.reduce((sum, category) => sum + category.percent, 0);
+  const uniqueCoverage = (unionPoints / pointsInsideYou) * 100;
   const displayTotal = Math.round(total);
   const displayPercents = categories.map((category) => Math.floor(category.percent));
   let remainingPoints = displayTotal - displayPercents.reduce((sum, value) => sum + value, 0);
@@ -239,7 +250,7 @@ export function estimateCategoryDistribution(
       return {
         ids: `${domains[first].id}:${domains[second].id}`,
         labels: `${domains[first].label} + ${domains[second].label}`,
-        percent: (count / unionPoints) * 100,
+        percent: (count / pointsInsideYou) * 100,
       };
     })
     .filter((overlap) => overlap.percent >= 0.5)
@@ -250,7 +261,9 @@ export function estimateCategoryDistribution(
     pairOverlaps,
     total,
     displayTotal,
-    overlapValue: Math.max(0, total - 100),
+    uniqueCoverage,
+    displayUniqueCoverage: Math.round(uniqueCoverage),
+    overlapValue: Math.max(0, total - uniqueCoverage),
   };
 }
 

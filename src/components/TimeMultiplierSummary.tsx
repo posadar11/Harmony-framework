@@ -1,6 +1,7 @@
 import {
   estimateCategoryDistribution,
   PRESENTATION_DOMAIN_RADIUS_RATIO,
+  PRESENTATION_YOU_RADIUS_RATIO,
 } from "@/lib/diagram-geometry";
 import type { DomainCircle } from "@/lib/diagram-types";
 
@@ -9,9 +10,14 @@ interface TimeMultiplierSummaryProps {
 }
 
 export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
-  const distribution = estimateCategoryDistribution(circles, 140, PRESENTATION_DOMAIN_RADIUS_RATIO);
+  const distribution = estimateCategoryDistribution(
+    circles,
+    140,
+    PRESENTATION_YOU_RADIUS_RATIO,
+    PRESENTATION_DOMAIN_RADIUS_RATIO,
+  );
   const overlaps = distribution.pairOverlaps.slice(0, 3);
-  const overlapExtra = Math.max(0, distribution.displayTotal - 100);
+  const overlapExtra = Math.max(0, distribution.displayTotal - distribution.displayUniqueCoverage);
 
   return (
     <section className="rounded-2xl border border-border bg-card/80 p-5">
@@ -20,15 +26,15 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
         100% of time. More than 100% value.
       </h3>
       <p className="mt-2 text-sm text-muted-foreground">
-        Your week stays fixed. Shared hours appear in every category they serve, so the category
-        percentages can add above 100%.
+        Each percentage is the portion of You covered by that category. Shared portions appear in
+        every category they serve, so the total can rise above 100%.
       </p>
 
       <div className="mt-5 rounded-2xl bg-accent/10 p-5 text-center">
         <strong className="font-mono text-5xl text-foreground">{distribution.displayTotal}%</strong>
         <p className="mt-2 text-sm font-medium text-foreground">total across categories</p>
         <div className="mt-3 flex items-center justify-center gap-2 font-mono text-xs text-foreground/80">
-          <span>100% actual week</span>
+          <span>{distribution.displayUniqueCoverage}% represented once</span>
           <span className="text-accent">+</span>
           <span>{overlapExtra}% overlap</span>
         </div>
@@ -36,12 +42,12 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
 
       <div className="mt-3 rounded-xl border border-accent/30 bg-accent/5 p-4">
         <p className="text-xs font-medium text-foreground">
-          {overlapExtra > 0 ? `Why +${overlapExtra}%?` : "Why does it start at 100%?"}
+          {overlapExtra > 0 ? `Why +${overlapExtra}%?` : "How is this calculated?"}
         </p>
         <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
           {overlapExtra > 0
-            ? "It is not extra time. It is the same shared time counted in every category it serves. For example, one hour shared by Work and Family is one actual hour, but it appears in both percentages."
-            : "Separate categories divide one actual week into 100%. When categories overlap, the shared hours will appear in each category and the total will rise above 100%."}
+            ? "It is not extra time. It is the same shared portion counted in every category it serves. For example, one hour shared by Work and Family is one actual hour, but it appears in both percentages."
+            : "The part of each category inside You determines its percentage. A Size 100 category centered on You covers the full circle and reads 100%."}
         </p>
       </div>
 

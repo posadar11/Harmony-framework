@@ -258,7 +258,7 @@ function FacilitatorPage() {
     session: 1,
     title: "Overlap multiplies value",
     subtitle: "Live overlap demonstration",
-    body: "Start with 100% distributed across separate categories. Move circles together: shared hours count in every category they serve.",
+    body: "A category's percentage is the part of You it covers. Center Size 100 on You for 100%, then add overlaps to lift the total above 100%.",
   });
   slides.push({
     kind: "scenario",

@@ -121,8 +121,10 @@ export function DiagramBuilder({
   );
   const presentationDistribution = useMemo(
     () =>
-      presentationMode ? estimateCategoryDistribution(circles, 100, domainBaseRadiusRatio) : null,
-    [circles, domainBaseRadiusRatio, presentationMode],
+      presentationMode
+        ? estimateCategoryDistribution(circles, 100, youRadiusRatio, domainBaseRadiusRatio)
+        : null,
+    [circles, domainBaseRadiusRatio, presentationMode, youRadiusRatio],
   );
   const presentationPercentById = useMemo(
     () =>
@@ -368,7 +370,7 @@ export function DiagramBuilder({
               ))}
           </div>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            Size 100 matches You. Overlap can lift the category total above 100%.
+            Size 100 centered on You equals 100%. Overlaps can lift the total above 100%.
           </p>
         </div>
       )}
