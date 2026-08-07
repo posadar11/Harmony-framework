@@ -16,7 +16,6 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
     PRESENTATION_YOU_RADIUS_RATIO,
     PRESENTATION_DOMAIN_RADIUS_RATIO,
   );
-  const overlaps = distribution.pairOverlaps.slice(0, 3);
   const overlapExtra = Math.max(0, distribution.displayTotal - distribution.displayUniqueCoverage);
 
   return (
@@ -41,12 +40,10 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
       </div>
 
       <div className="mt-3 rounded-xl border border-accent/30 bg-accent/5 p-4">
-        <p className="text-xs font-medium text-foreground">
-          {overlapExtra > 0 ? `Why +${overlapExtra}%?` : "How is this calculated?"}
-        </p>
+        <p className="text-xs font-medium text-foreground">How to tell the story</p>
         <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
           {overlapExtra > 0
-            ? "It is not extra time. It is the same shared portion counted in every category it serves. For example, one hour shared by Work and Family is one actual hour, but it appears in both percentages."
+            ? `${distribution.displayUniqueCoverage}% of the week is represented once. ${overlapExtra}% is counted again because those same hours belong to more than one category. That brings the category total to ${distribution.displayTotal}%. The week did not get longer—the same hours are serving more than one part of life.`
             : "The part of each category inside You determines its percentage. A Size 100 category centered on You covers the full circle and reads 100%."}
         </p>
       </div>
@@ -70,26 +67,6 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
             </li>
           ))}
         </ul>
-      </div>
-
-      <div className="mt-4 border-t border-border/70 pt-4">
-        <p className="text-xs font-medium text-foreground">Where time overlaps</p>
-        {overlaps.length > 0 ? (
-          <ul className="mt-2 space-y-2">
-            {overlaps.map((overlap) => (
-              <li key={overlap.labels} className="flex items-center justify-between gap-3 text-xs">
-                <span className="text-foreground/75">{overlap.labels}</span>
-                <strong className="font-mono text-foreground">
-                  {Math.round(overlap.percent)}%
-                </strong>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-2 text-xs text-muted-foreground">
-            No overlap yet: the categories add to exactly 100%.
-          </p>
-        )}
       </div>
     </section>
   );
