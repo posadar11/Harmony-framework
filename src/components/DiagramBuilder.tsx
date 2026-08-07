@@ -247,11 +247,11 @@ export function DiagramBuilder({
           marginInline: presentationMode ? "auto" : undefined,
         }}
       >
-        <p className="absolute bottom-2 left-0 right-0 z-30 text-center text-[11px] text-muted-foreground pointer-events-none">
-          {presentationMode
-            ? "Move categories together · shared hours count in each category"
-            : "Drag in or out of You · overlap domains to show shared time"}
-        </p>
+        {!presentationMode && (
+          <p className="absolute bottom-2 left-0 right-0 z-30 text-center text-[11px] text-muted-foreground pointer-events-none">
+            Drag in or out of You · overlap domains to show shared time
+          </p>
+        )}
         {showYou && (
           <>
             <div
