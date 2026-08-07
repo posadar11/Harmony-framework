@@ -6,7 +6,7 @@ import QRCode from "qrcode";
 import { DiagramBuilder, StaticDiagram } from "@/components/DiagramBuilder";
 import { TimeMultiplierSummary } from "@/components/TimeMultiplierSummary";
 import { WeeklyPieChart } from "@/components/WeeklyPieChart";
-import { type DomainCircle } from "@/lib/diagram-types";
+import { CATEGORY_COLORS, type DomainCircle } from "@/lib/diagram-types";
 import { createRoomCode } from "@/lib/live-room";
 import { averageWeeklyAllocations, type WeeklySubmission } from "@/lib/weekly-allocation";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,7 @@ const makeOverlapDemo = (): DomainCircle[] => [
     x: 0.3,
     y: 0.16,
     enabled: true,
-    color: "#7BA7C5",
+    color: CATEGORY_COLORS.Work,
   },
   {
     id: "demo-close",
@@ -28,7 +28,7 @@ const makeOverlapDemo = (): DomainCircle[] => [
     x: 0.62,
     y: 0.16,
     enabled: true,
-    color: "#C58F8F",
+    color: CATEGORY_COLORS["Close relationships"],
   },
   {
     id: "demo-family",
@@ -37,16 +37,7 @@ const makeOverlapDemo = (): DomainCircle[] => [
     x: 0.84,
     y: 0.38,
     enabled: true,
-    color: "#B8A05E",
-  },
-  {
-    id: "demo-health",
-    label: "Health",
-    percent: 50,
-    x: 0.7,
-    y: 0.84,
-    enabled: true,
-    color: "#6DAEA6",
+    color: CATEGORY_COLORS.Family,
   },
   {
     id: "demo-community",
@@ -55,7 +46,7 @@ const makeOverlapDemo = (): DomainCircle[] => [
     x: 0.38,
     y: 0.84,
     enabled: true,
-    color: "#8FA98A",
+    color: CATEGORY_COLORS.Community,
   },
   {
     id: "demo-hobbies",
@@ -64,7 +55,16 @@ const makeOverlapDemo = (): DomainCircle[] => [
     x: 0.16,
     y: 0.62,
     enabled: true,
-    color: "#B592C1",
+    color: CATEGORY_COLORS.Hobbies,
+  },
+  {
+    id: "demo-health",
+    label: "Health",
+    percent: 50,
+    x: 0.7,
+    y: 0.84,
+    enabled: true,
+    color: CATEGORY_COLORS.Health,
   },
 ];
 
@@ -247,12 +247,12 @@ function FacilitatorPage() {
     subtitle: "The relationship lens",
     body: "Your week is finite, but the same hour can contribute to more than one relationship. The question is not only where time goes, but what—and who—that time serves.",
     chips: [
-      { label: "Work", color: "#7BA7C5" },
-      { label: "Close relationships", color: "#C58F8F" },
-      { label: "Family", color: "#B8A05E" },
-      { label: "Health", color: "#6DAEA6" },
-      { label: "Community", color: "#8FA98A" },
-      { label: "Hobbies", color: "#B592C1" },
+      { label: "Work", color: CATEGORY_COLORS.Work },
+      { label: "Close relationships", color: CATEGORY_COLORS["Close relationships"] },
+      { label: "Family", color: CATEGORY_COLORS.Family },
+      { label: "Community", color: CATEGORY_COLORS.Community },
+      { label: "Hobbies", color: CATEGORY_COLORS.Hobbies },
+      { label: "Health", color: CATEGORY_COLORS.Health },
     ],
   });
 
@@ -563,7 +563,7 @@ function FacilitatorPage() {
                     >
                       <span
                         className="inline-block h-6 w-6 rounded-full border border-foreground/20"
-                        style={{ backgroundColor: c.color, opacity: 0.7 }}
+                        style={{ backgroundColor: c.color }}
                       />
                       <span className="font-serif text-xl text-foreground">{c.label}</span>
                       <span className="ml-auto text-xs uppercase tracking-[0.15em] text-muted-foreground">

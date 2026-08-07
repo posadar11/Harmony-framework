@@ -13,12 +13,22 @@ export interface DomainCircle {
   labelInside?: boolean;
 }
 
+/** Shared palette for every relationship-domain circle and presentation legend. */
+export const CATEGORY_COLORS = {
+  Work: "#BED4E1",
+  "Close relationships": "#E4C9CB",
+  Family: "#DDD0B8",
+  Community: "#C8D4C9",
+  Hobbies: "#DCCAE0",
+  Health: "#394A5E",
+} as const;
+
 export const DEFAULT_COLORS = [
-  "#7BA7C5", // work — muted blue
-  "#C58F8F", // close — rose
-  "#B8A05E", // family — ochre
-  "#8FA98A", // community — sage
-  "#B592C1", // hobbies — lavender
+  CATEGORY_COLORS.Work,
+  CATEGORY_COLORS["Close relationships"],
+  CATEGORY_COLORS.Family,
+  CATEGORY_COLORS.Community,
+  CATEGORY_COLORS.Hobbies,
   "#C7B08A", // me time — sand
   "#6DAEA6", // custom slot 1 — teal
   "#B5867C", // custom slot 2 — clay
@@ -37,6 +47,14 @@ export const DEFAULT_DOMAINS: Omit<DomainCircle, "id">[] = [
   { label: "Family", percent: 20, x: 0.45, y: 0.62, enabled: true, color: DEFAULT_COLORS[2] },
   { label: "Community", percent: 20, x: 0.72, y: 0.65, enabled: true, color: DEFAULT_COLORS[3] },
   { label: "Hobbies", percent: 20, x: 0.25, y: 0.7, enabled: true, color: DEFAULT_COLORS[4] },
+  {
+    label: "Health",
+    percent: 20,
+    x: 0.5,
+    y: 0.76,
+    enabled: true,
+    color: CATEGORY_COLORS.Health,
+  },
   {
     label: "Time for myself",
     percent: 20,

@@ -6,7 +6,14 @@ interface DiagramComparisonChartProps {
   ideal: DomainCircle[];
 }
 
-const CORE_CATEGORY_ORDER = ["Work", "Close relationships", "Family", "Hobbies", "Community"];
+const CORE_CATEGORY_ORDER = [
+  "Work",
+  "Close relationships",
+  "Family",
+  "Community",
+  "Hobbies",
+  "Health",
+];
 
 function shareForLabel(circles: DomainCircle[], label: string) {
   const circle = circles.find((item) => item.label === label);
