@@ -53,22 +53,15 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
         </ul>
       </div>
 
-      <div className="mt-4 rounded-xl border border-accent/30 bg-background p-4">
-        <p className="text-xs uppercase tracking-[0.13em] text-accent">Intentionality check</p>
-        <p className="mt-2 text-sm leading-relaxed text-foreground/85">
-          Is this overlap chosen? Does it strengthen each category—or blur a boundary?
-        </p>
-      </div>
-
       <div className="mt-4 border-t border-border/70 pt-4">
-        <p className="text-xs font-medium text-foreground">Intentional value score</p>
+        <p className="text-xs font-medium text-foreground">Where time overlaps</p>
         {overlaps.length > 0 ? (
           <ul className="mt-2 space-y-2">
             {overlaps.map((overlap) => (
               <li key={overlap.labels} className="flex items-center justify-between gap-3 text-xs">
                 <span className="text-foreground/75">{overlap.labels}</span>
                 <strong className="font-mono text-foreground">
-                  {Math.round(overlap.percent)}% · 1.5×
+                  {Math.round(overlap.percent)}%
                 </strong>
               </li>
             ))}
@@ -76,11 +69,6 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
         ) : (
           <p className="mt-2 text-xs text-muted-foreground">
             No overlap yet: the categories add to exactly 100%.
-          </p>
-        )}
-        {overlaps.length > 0 && (
-          <p className="mt-2 text-[10px] text-muted-foreground">
-            The 1.5× reflection score is separate from the category percentage total above.
           </p>
         )}
       </div>
