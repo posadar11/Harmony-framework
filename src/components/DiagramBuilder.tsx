@@ -339,7 +339,7 @@ export function DiagramBuilder({
               </button>
             )}
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
             {circles
               .filter((circle) => circle.enabled)
               .map((circle) => (
