@@ -154,6 +154,106 @@ export function estimateSharedCoverage(
   return pointsInsideYou === 0 ? 0 : (sharedPoints / pointsInsideYou) * 100;
 }
 
+/**
+ * Treat the union of all presentation circles as one fixed 100% week.
+ * Each category receives its portion of that union, so overlapping portions
+ * appear in every category they serve and the category total can exceed 100%.
+ */
+export function estimateCategoryDistribution(
+  circles: DomainCircle[],
+  sampleGrid = 120,
+  domainBaseRadiusRatio = YOU_RADIUS_RATIO,
+) {
+  const domains = circles
+    .filter((circle) => circle.enabled)
+    .map((circle) => ({
+      id: circle.id,
+      label: circle.label,
+      color: circle.color,
+      x: circle.x,
+      y: circle.y,
+      radiusSquared: domainRadiusRatio(circle.percent, domainBaseRadiusRatio) ** 2,
+    }));
+  const categoryCounts = domains.map(() => 0);
+  const pairCounts = new Map<string, number>();
+  let unionPoints = 0;
+
+  for (let row = 0; row < sampleGrid; row++) {
+    const y = (row + 0.5) / sampleGrid;
+    for (let column = 0; column < sampleGrid; column++) {
+      const x = (column + 0.5) / sampleGrid;
+      const covered: number[] = [];
+      domains.forEach((domain, index) => {
+        const dx = x - domain.x;
+        const dy = y - domain.y;
+        if (dx * dx + dy * dy <= domain.radiusSquared) {
+          categoryCounts[index]++;
+          covered.push(index);
+        }
+      });
+      if (covered.length === 0) continue;
+      unionPoints++;
+      for (let first = 0; first < covered.length; first++) {
+        for (let second = first + 1; second < covered.length; second++) {
+          const key = `${covered[first]}:${covered[second]}`;
+          pairCounts.set(key, (pairCounts.get(key) ?? 0) + 1);
+        }
+      }
+    }
+  }
+
+  if (unionPoints === 0) {
+    return {
+      categories: [],
+      pairOverlaps: [],
+      total: 0,
+      displayTotal: 0,
+      overlapValue: 0,
+    };
+  }
+
+  const categories = domains.map((domain, index) => ({
+    id: domain.id,
+    label: domain.label,
+    color: domain.color,
+    percent: (categoryCounts[index] / unionPoints) * 100,
+  }));
+  const total = categories.reduce((sum, category) => sum + category.percent, 0);
+  const displayTotal = Math.round(total);
+  const displayPercents = categories.map((category) => Math.floor(category.percent));
+  let remainingPoints = displayTotal - displayPercents.reduce((sum, value) => sum + value, 0);
+  const remainderOrder = categories
+    .map((category, index) => ({ index, remainder: category.percent % 1 }))
+    .sort((a, b) => b.remainder - a.remainder);
+  for (let index = 0; index < remainderOrder.length && remainingPoints > 0; index++) {
+    displayPercents[remainderOrder[index].index]++;
+    remainingPoints--;
+  }
+  const displayedCategories = categories.map((category, index) => ({
+    ...category,
+    displayPercent: displayPercents[index],
+  }));
+  const pairOverlaps = [...pairCounts.entries()]
+    .map(([key, count]) => {
+      const [first, second] = key.split(":").map(Number);
+      return {
+        ids: `${domains[first].id}:${domains[second].id}`,
+        labels: `${domains[first].label} + ${domains[second].label}`,
+        percent: (count / unionPoints) * 100,
+      };
+    })
+    .filter((overlap) => overlap.percent >= 0.5)
+    .sort((a, b) => b.percent - a.percent);
+
+  return {
+    categories: displayedCategories,
+    pairOverlaps,
+    total,
+    displayTotal,
+    overlapValue: Math.max(0, total - 100),
+  };
+}
+
 /** Approximate the portion of You covered by both domain circles. */
 export function estimatePairOverlap(
   first: DomainCircle,

@@ -258,7 +258,7 @@ function FacilitatorPage() {
     session: 1,
     title: "Overlap multiplies value",
     subtitle: "Live overlap demonstration",
-    body: "Start outside. Resize a category, then drag it into You. Overlaps count toward every category they serve.",
+    body: "Start with 100% distributed across separate categories. Move circles together: shared hours count in every category they serve.",
   });
   slides.push({
     kind: "scenario",

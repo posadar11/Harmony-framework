@@ -6,6 +6,7 @@ import {
   constrainDomainToCanvas,
   domainRadiusRatio,
   domainTimeShare,
+  estimateCategoryDistribution,
   estimateUniqueCoverage,
   PRESENTATION_DOMAIN_RADIUS_RATIO,
   PRESENTATION_YOU_RADIUS_RATIO,
@@ -117,6 +118,21 @@ export function DiagramBuilder({
   const uniqueCoverage = useMemo(
     () => estimateUniqueCoverage(circles, 120, youRadiusRatio, domainBaseRadiusRatio),
     [circles, domainBaseRadiusRatio, youRadiusRatio],
+  );
+  const presentationDistribution = useMemo(
+    () =>
+      presentationMode ? estimateCategoryDistribution(circles, 100, domainBaseRadiusRatio) : null,
+    [circles, domainBaseRadiusRatio, presentationMode],
+  );
+  const presentationPercentById = useMemo(
+    () =>
+      new Map(
+        presentationDistribution?.categories.map((category) => [
+          category.id,
+          category.displayPercent,
+        ]) ?? [],
+      ),
+    [presentationDistribution],
   );
   const remainingCoverage = Math.max(0, 100 - uniqueCoverage);
   const sharedAllocation = Math.max(0, grossAllocation - uniqueCoverage);
@@ -233,7 +249,7 @@ export function DiagramBuilder({
       >
         <p className="absolute bottom-2 left-0 right-0 z-30 text-center text-[11px] text-muted-foreground pointer-events-none">
           {presentationMode
-            ? "Drag circles into You to see the shared value"
+            ? "Move categories together · shared hours count in each category"
             : "Drag in or out of You · overlap domains to show shared time"}
         </p>
         {showYou && (
@@ -289,11 +305,13 @@ export function DiagramBuilder({
                   className="px-2 text-[11px] md:text-xs font-medium text-foreground/85 pointer-events-none"
                   style={{ maxWidth: r * 1.7 }}
                 >
-                  {showYou
-                    ? `${c.label} · ${Math.round(
-                        domainTimeShare(c, youRadiusRatio, domainBaseRadiusRatio),
-                      )}%`
-                    : c.label}
+                  {presentationMode
+                    ? `${c.label} · ${Math.round(presentationPercentById.get(c.id) ?? 0)}%`
+                    : showYou
+                      ? `${c.label} · ${Math.round(
+                          domainTimeShare(c, youRadiusRatio, domainBaseRadiusRatio),
+                        )}%`
+                      : c.label}
                 </span>
               </div>
             );
@@ -350,7 +368,7 @@ export function DiagramBuilder({
               ))}
           </div>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            Size 100 matches the You circle. Position changes how much of it enters You.
+            Size 100 matches You. Overlap can lift the category total above 100%.
           </p>
         </div>
       )}
