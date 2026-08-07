@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { DiagramBuilder, StaticDiagram } from "@/components/DiagramBuilder";
+import { DiagramComparisonChart } from "@/components/DiagramComparisonChart";
 import { domainTimeShare } from "@/lib/diagram-geometry";
 import { makeStartingDiagram, type DomainCircle } from "@/lib/diagram-types";
 import { supabase } from "@/integrations/supabase/client";
@@ -476,6 +477,8 @@ function ExercisePage({ room }: { room: string }) {
                 <StaticDiagram title="Ideal" circles={ideal} showYou />
                 <StaticDiagram title="Current" circles={current} showYou />
               </div>
+
+              <DiagramComparisonChart current={current} ideal={ideal} />
 
               {insights && (
                 <div className="mt-6 rounded-2xl border border-border bg-card/70 p-5">
