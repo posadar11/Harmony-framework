@@ -7,6 +7,7 @@ import {
   domainRadiusRatio,
   domainTimeShare,
   estimateUniqueCoverage,
+  PRESENTATION_YOU_RADIUS_RATIO,
   YOU_RADIUS_RATIO,
 } from "@/lib/diagram-geometry";
 
@@ -19,6 +20,8 @@ interface Props {
   showYou?: boolean;
   /** Large canvas-only view for live presentation; circles remain draggable. */
   presentationMode?: boolean;
+  /** Restore the presentation demonstration to its starting state. */
+  onResetPresentation?: () => void;
 }
 
 const MIN_R = 30;
@@ -48,6 +51,7 @@ export function DiagramBuilder({
   compact = false,
   showYou = false,
   presentationMode = false,
+  onResetPresentation,
 }: Props) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const circlesRef = useRef(circles);
@@ -94,14 +98,19 @@ export function DiagramBuilder({
     onChange(next);
   };
 
+  const youRadiusRatio = presentationMode ? PRESENTATION_YOU_RADIUS_RATIO : YOU_RADIUS_RATIO;
+
   const update = (id: string, patch: Partial<DomainCircle>) => {
     replaceCircles(circlesRef.current.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   };
 
   const grossAllocation = circles
     .filter((circle) => circle.enabled)
-    .reduce((sum, circle) => sum + domainTimeShare(circle), 0);
-  const uniqueCoverage = useMemo(() => estimateUniqueCoverage(circles), [circles]);
+    .reduce((sum, circle) => sum + domainTimeShare(circle, youRadiusRatio), 0);
+  const uniqueCoverage = useMemo(
+    () => estimateUniqueCoverage(circles, 120, youRadiusRatio),
+    [circles, youRadiusRatio],
+  );
   const remainingCoverage = Math.max(0, 100 - uniqueCoverage);
   const sharedAllocation = Math.max(0, grossAllocation - uniqueCoverage);
 
@@ -109,7 +118,7 @@ export function DiagramBuilder({
     const percent = Math.round(clamp(requested, MIN_ALLOCATION, 100));
     const circle = circlesRef.current.find((item) => item.id === id);
     if (!circle) return;
-    const position = constrainDomainToCanvas(circle.x, circle.y, percent);
+    const position = constrainDomainToCanvas(circle.x, circle.y, percent, youRadiusRatio);
     update(id, { percent, ...position });
   };
 
@@ -119,7 +128,7 @@ export function DiagramBuilder({
       return;
     }
     const percent = Math.max(MIN_ALLOCATION, Math.min(100, circle.percent || 20));
-    const position = constrainDomainToCanvas(circle.x, circle.y, percent);
+    const position = constrainDomainToCanvas(circle.x, circle.y, percent, youRadiusRatio);
     update(circle.id, { enabled: true, percent, ...position });
   };
 
@@ -178,7 +187,7 @@ export function DiagramBuilder({
     const desiredX = drag.startX + deltaX / rect.width;
     const desiredY = drag.startY + deltaY / rect.height;
     const position = showYou
-      ? constrainDomainToCanvas(desiredX, desiredY, circle.percent)
+      ? constrainDomainToCanvas(desiredX, desiredY, circle.percent, youRadiusRatio)
       : { x: clamp(desiredX, 0.05, 0.95), y: clamp(desiredY, 0.05, 0.95) };
     update(drag.id, {
       ...position,
@@ -194,7 +203,7 @@ export function DiagramBuilder({
   };
 
   const customCount = circles.filter((c) => c.custom).length;
-  const youR = size * YOU_RADIUS_RATIO;
+  const youR = size * youRadiusRatio;
 
   return (
     <div className="space-y-4">
@@ -210,14 +219,14 @@ export function DiagramBuilder({
         className="relative w-full rounded-2xl border border-border bg-card/60 venn-bg overflow-hidden touch-none select-none"
         style={{
           aspectRatio: "1 / 1",
-          maxHeight: presentationMode ? 640 : compact ? 380 : 560,
-          maxWidth: presentationMode ? 640 : undefined,
+          maxHeight: presentationMode ? 680 : compact ? 380 : 560,
+          maxWidth: presentationMode ? 680 : undefined,
           marginInline: presentationMode ? "auto" : undefined,
         }}
       >
         <p className="absolute bottom-2 left-0 right-0 z-30 text-center text-[11px] text-muted-foreground pointer-events-none">
           {presentationMode
-            ? "Drag the circles to change the overlaps"
+            ? "Drag circles into You to see the shared value"
             : "Drag in or out of You · overlap domains to show shared time"}
         </p>
         {showYou && (
@@ -243,8 +252,12 @@ export function DiagramBuilder({
         {circles
           .filter((c) => c.enabled)
           .map((c) => {
-            const r = showYou ? size * domainRadiusRatio(c.percent) : radiusFor(c.percent, size);
-            const position = showYou ? constrainDomainToCanvas(c.x, c.y, c.percent) : c;
+            const r = showYou
+              ? size * domainRadiusRatio(c.percent, youRadiusRatio)
+              : radiusFor(c.percent, size);
+            const position = showYou
+              ? constrainDomainToCanvas(c.x, c.y, c.percent, youRadiusRatio)
+              : c;
             const cx = position.x * size;
             const cy = position.y * size;
             const isSel = selected === c.id;
@@ -269,7 +282,9 @@ export function DiagramBuilder({
                   className="px-2 text-[11px] md:text-xs font-medium text-foreground/85 pointer-events-none"
                   style={{ maxWidth: r * 1.7 }}
                 >
-                  {showYou ? `${c.label} · ${Math.round(domainTimeShare(c))}%` : c.label}
+                  {showYou
+                    ? `${c.label} · ${Math.round(domainTimeShare(c, youRadiusRatio))}%`
+                    : c.label}
                 </span>
               </div>
             );
@@ -280,6 +295,56 @@ export function DiagramBuilder({
           </div>
         )}
       </div>
+
+      {presentationMode && (
+        <div className="mx-auto w-full max-w-[680px] rounded-2xl border border-border bg-card/80 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-medium text-foreground">Change each circle's size</p>
+            {onResetPresentation && (
+              <button
+                type="button"
+                onClick={onResetPresentation}
+                className="rounded-full border border-border px-3 py-1 text-[11px] text-foreground hover:border-accent"
+              >
+                Reset to 50 · outside
+              </button>
+            )}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {circles
+              .filter((circle) => circle.enabled)
+              .map((circle) => (
+                <label key={circle.id} className="rounded-xl bg-muted/55 px-2 py-2">
+                  <span className="flex items-center gap-1.5 text-[10px] text-foreground/80">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: circle.color }}
+                    />
+                    <span className="truncate">{circle.label}</span>
+                  </span>
+                  <input
+                    type="range"
+                    min={MIN_ALLOCATION}
+                    max={100}
+                    step={1}
+                    value={circle.percent}
+                    onChange={(event) =>
+                      updateAllocation(circle.id, Number.parseInt(event.target.value, 10))
+                    }
+                    className="mt-2 w-full accent-[var(--accent)]"
+                    aria-label={`Circle size for ${circle.label}`}
+                  />
+                  <span className="mt-0.5 block text-center font-mono text-[10px] text-muted-foreground">
+                    Size {Math.round(circle.percent)}
+                  </span>
+                </label>
+              ))}
+          </div>
+          <p className="mt-2 text-center text-[11px] text-muted-foreground">
+            Size changes the category circle. Position changes how much of it enters You.
+          </p>
+        </div>
+      )}
 
       {showYou && !presentationMode && (
         <div className="rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-xs leading-relaxed text-foreground/80">

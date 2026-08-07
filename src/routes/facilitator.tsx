@@ -11,6 +11,54 @@ import { createRoomCode } from "@/lib/live-room";
 import { averageWeeklyAllocations, type WeeklySubmission } from "@/lib/weekly-allocation";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 
+const makeOverlapDemo = (): DomainCircle[] => [
+  {
+    id: "demo-work",
+    label: "Work",
+    percent: 50,
+    x: 0.5,
+    y: 0.15,
+    enabled: true,
+    color: "#7BA7C5",
+  },
+  {
+    id: "demo-family",
+    label: "Family",
+    percent: 50,
+    x: 0.83,
+    y: 0.39,
+    enabled: true,
+    color: "#B8A05E",
+  },
+  {
+    id: "demo-close",
+    label: "Close relationships",
+    percent: 50,
+    x: 0.7,
+    y: 0.8,
+    enabled: true,
+    color: "#C58F8F",
+  },
+  {
+    id: "demo-community",
+    label: "Community",
+    percent: 50,
+    x: 0.3,
+    y: 0.8,
+    enabled: true,
+    color: "#8FA98A",
+  },
+  {
+    id: "demo-hobbies",
+    label: "Hobbies",
+    percent: 50,
+    x: 0.17,
+    y: 0.39,
+    enabled: true,
+    color: "#B592C1",
+  },
+];
+
 export const Route = createFileRoute("/facilitator")({
   head: () => ({
     meta: [
@@ -83,53 +131,7 @@ function FacilitatorPage() {
   const [joinUrl, setJoinUrl] = useState<string>("");
   const [roomCode, setRoomCode] = useState("");
   const [weeklySubmissions, setWeeklySubmissions] = useState<WeeklySubmission[]>([]);
-  const [overlapDemo, setOverlapDemo] = useState<DomainCircle[]>([
-    {
-      id: "demo-work",
-      label: "Work",
-      percent: 40,
-      x: 0.47,
-      y: 0.45,
-      enabled: true,
-      color: "#7BA7C5",
-    },
-    {
-      id: "demo-family",
-      label: "Family",
-      percent: 30,
-      x: 0.58,
-      y: 0.5,
-      enabled: true,
-      color: "#B8A05E",
-    },
-    {
-      id: "demo-close",
-      label: "Close relationships",
-      percent: 25,
-      x: 0.43,
-      y: 0.6,
-      enabled: true,
-      color: "#C58F8F",
-    },
-    {
-      id: "demo-community",
-      label: "Community",
-      percent: 20,
-      x: 0.35,
-      y: 0.5,
-      enabled: true,
-      color: "#8FA98A",
-    },
-    {
-      id: "demo-hobbies",
-      label: "Hobbies",
-      percent: 15,
-      x: 0.62,
-      y: 0.38,
-      enabled: true,
-      color: "#B592C1",
-    },
-  ]);
+  const [overlapDemo, setOverlapDemo] = useState<DomainCircle[]>(makeOverlapDemo);
   const [showRoomAverage, setShowRoomAverage] = useState(false);
   const [liveConnectionError, setLiveConnectionError] = useState<string | null>(null);
 
@@ -256,7 +258,7 @@ function FacilitatorPage() {
     session: 1,
     title: "Overlap multiplies value",
     subtitle: "Live overlap demonstration",
-    body: "Drag the circles together. One hour can count toward more than one relationship.",
+    body: "Start outside. Resize a category, then drag it into You. Overlaps count toward every category they serve.",
   });
   slides.push({
     kind: "scenario",
@@ -298,6 +300,7 @@ function FacilitatorPage() {
 
   const enterPresent = async () => {
     setSlide(0);
+    setOverlapDemo(makeOverlapDemo());
     setPresenting(true);
     try {
       await document.documentElement.requestFullscreen();
@@ -345,6 +348,7 @@ function FacilitatorPage() {
                   onChange={setOverlapDemo}
                   showYou
                   presentationMode
+                  onResetPresentation={() => setOverlapDemo(makeOverlapDemo())}
                 />
                 <div className="lg:sticky lg:top-4">
                   <TimeMultiplierSummary circles={overlapDemo} />

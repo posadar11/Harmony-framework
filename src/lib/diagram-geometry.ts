@@ -1,18 +1,24 @@
 import type { DomainCircle } from "@/lib/diagram-types";
 
 export const YOU_RADIUS_RATIO = 0.28;
+export const PRESENTATION_YOU_RADIUS_RATIO = 0.2;
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-export function domainRadiusRatio(percent: number) {
-  return YOU_RADIUS_RATIO * Math.sqrt(clamp(percent, 0, 100) / 100);
+export function domainRadiusRatio(percent: number, youRadiusRatio = YOU_RADIUS_RATIO) {
+  return youRadiusRatio * Math.sqrt(clamp(percent, 0, 100) / 100);
 }
 
 /** Keep the complete domain circle visible on the square canvas without forcing it inside You. */
-export function constrainDomainToCanvas(x: number, y: number, percent: number) {
-  const radius = domainRadiusRatio(percent);
+export function constrainDomainToCanvas(
+  x: number,
+  y: number,
+  percent: number,
+  youRadiusRatio = YOU_RADIUS_RATIO,
+) {
+  const radius = domainRadiusRatio(percent, youRadiusRatio);
   const edge = radius + 0.01;
   return {
     x: clamp(x, edge, 1 - edge),
@@ -21,11 +27,11 @@ export function constrainDomainToCanvas(x: number, y: number, percent: number) {
 }
 
 /** Percentage of the You circle covered by one domain circle. */
-export function domainTimeShare(circle: DomainCircle) {
+export function domainTimeShare(circle: DomainCircle, youRadiusRatio = YOU_RADIUS_RATIO) {
   if (!circle.enabled) return 0;
 
-  const r1 = YOU_RADIUS_RATIO;
-  const r2 = domainRadiusRatio(circle.percent);
+  const r1 = youRadiusRatio;
+  const r2 = domainRadiusRatio(circle.percent, youRadiusRatio);
   const distance = Math.hypot(circle.x - 0.5, circle.y - 0.5);
   const youArea = Math.PI * r1 * r1;
 
@@ -57,19 +63,23 @@ export function domainTimeShare(circle: DomainCircle) {
 }
 
 /** Approximate the union of all domains, clipped to the You circle. */
-export function estimateUniqueCoverage(circles: DomainCircle[], sampleGrid = 120) {
+export function estimateUniqueCoverage(
+  circles: DomainCircle[],
+  sampleGrid = 120,
+  youRadiusRatio = YOU_RADIUS_RATIO,
+) {
   const domains = circles
     .filter((circle) => circle.enabled)
     .map((circle) => ({
       x: circle.x,
       y: circle.y,
-      radiusSquared: domainRadiusRatio(circle.percent) ** 2,
+      radiusSquared: domainRadiusRatio(circle.percent, youRadiusRatio) ** 2,
     }));
   if (domains.length === 0) return 0;
 
   let pointsInsideYou = 0;
   let coveredPoints = 0;
-  const youRadiusSquared = YOU_RADIUS_RATIO * YOU_RADIUS_RATIO;
+  const youRadiusSquared = youRadiusRatio * youRadiusRatio;
   for (let row = 0; row < sampleGrid; row++) {
     const y = (row + 0.5) / sampleGrid;
     for (let column = 0; column < sampleGrid; column++) {
@@ -94,11 +104,16 @@ export function estimateUniqueCoverage(circles: DomainCircle[], sampleGrid = 120
 }
 
 /** Approximate the portion of You covered by both domain circles. */
-export function estimatePairOverlap(first: DomainCircle, second: DomainCircle, sampleGrid = 80) {
+export function estimatePairOverlap(
+  first: DomainCircle,
+  second: DomainCircle,
+  sampleGrid = 80,
+  youRadiusRatio = YOU_RADIUS_RATIO,
+) {
   if (!first.enabled || !second.enabled) return 0;
-  const firstRadiusSquared = domainRadiusRatio(first.percent) ** 2;
-  const secondRadiusSquared = domainRadiusRatio(second.percent) ** 2;
-  const youRadiusSquared = YOU_RADIUS_RATIO * YOU_RADIUS_RATIO;
+  const firstRadiusSquared = domainRadiusRatio(first.percent, youRadiusRatio) ** 2;
+  const secondRadiusSquared = domainRadiusRatio(second.percent, youRadiusRatio) ** 2;
+  const youRadiusSquared = youRadiusRatio * youRadiusRatio;
   let pointsInsideYou = 0;
   let sharedPoints = 0;
 
