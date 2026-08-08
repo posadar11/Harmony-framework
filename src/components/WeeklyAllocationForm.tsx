@@ -106,7 +106,9 @@ export function WeeklyAllocationForm({
                   max={100}
                   step={1}
                   inputMode="numeric"
-                  value={allocation.percent}
+                  value={allocation.percent === 0 ? "" : allocation.percent}
+                  placeholder="0"
+                  onFocus={(event) => event.currentTarget.select()}
                   onChange={(event) =>
                     update(allocation.id, {
                       percent: clampPercent(Number(event.target.value) || 0),
