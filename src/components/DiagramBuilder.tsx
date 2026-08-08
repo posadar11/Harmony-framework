@@ -335,7 +335,7 @@ export function DiagramBuilder({
                 onClick={onResetPresentation}
                 className="rounded-full border border-border px-3 py-1 text-[11px] text-foreground hover:border-accent"
               >
-                Reset to 50 · outside
+                Reset starting example
               </button>
             )}
           </div>

@@ -15,9 +15,9 @@ const makeOverlapDemo = (): DomainCircle[] => [
   {
     id: "demo-work",
     label: "Work",
-    percent: 50,
-    x: 0.3,
-    y: 0.16,
+    percent: 33,
+    x: 0.5,
+    y: 0.5,
     enabled: true,
     color: CATEGORY_COLORS.Work,
   },
@@ -93,7 +93,14 @@ type Slide =
   | { kind: "title"; session: number; title: string; subtitle: string; body: string }
   | { kind: "scenario"; session: number; title: string; subtitle: string; body: string }
   | { kind: "exercise"; session: number; title: string; subtitle: string; body: string }
-  | { kind: "overlap"; session: number; title: string; subtitle: string; body: string }
+  | {
+      kind: "overlap";
+      session: number;
+      title: string;
+      subtitle: string;
+      body: string;
+      source: string;
+    }
   | {
       kind: "diagram";
       session: number;
@@ -268,7 +275,9 @@ function FacilitatorPage() {
     session: 1,
     title: "Overlap multiplies value",
     subtitle: "Live overlap demonstration",
-    body: "A category's percentage is the part of You it covers. Center Size 100 on You for 100%, then add overlaps to lift the total above 100%.",
+    body: "A 40-hour workweek is 24% of the full 168-hour week. After 7–8 hours of sleep each night, 112–119 waking hours remain, making work about one-third of waking time—so Work begins at 33%.",
+    source:
+      "Sources: BLS American Time Use Survey; CDC/NIOSH analysis of ATUS. Full-time workers averaged 8.1 work hours and 7.8 sleep hours on workdays.",
   });
   slides.push({
     kind: "scenario",
@@ -350,6 +359,9 @@ function FacilitatorPage() {
                 <h2 className="font-serif text-4xl md:text-5xl text-foreground">{s.title}</h2>
                 <p className="mx-auto mt-4 max-w-3xl text-lg text-foreground/80 leading-relaxed">
                   {s.body}
+                </p>
+                <p className="mx-auto mt-2 max-w-3xl text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+                  {s.source}
                 </p>
               </div>
               <div className="mt-6 grid items-start gap-6 lg:grid-cols-[2fr_0.8fr]">
