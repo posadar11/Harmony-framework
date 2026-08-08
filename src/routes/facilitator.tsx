@@ -160,13 +160,13 @@ function FacilitatorPage() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const url = `${window.location.origin}/join`;
+    if (!roomCode || typeof window === "undefined") return;
+    const url = `${window.location.origin}/join?room=${encodeURIComponent(roomCode)}`;
     setJoinUrl(url);
     QRCode.toDataURL(url, { width: 720, margin: 2, color: { dark: "#2b2a26", light: "#ffffff" } })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(""));
-  }, []);
+  }, [roomCode]);
 
   useEffect(() => {
     if (!roomCode || typeof window === "undefined") return;
@@ -231,7 +231,7 @@ function FacilitatorPage() {
     session: 0,
     title: "Map your typical week",
     subtitle: "Exercise 1 · Your turn",
-    body: "Scan the permanent code, enter the room code, then divide a typical week into 100%.",
+    body: "Scan the code to open the exercise, then divide a typical week into 100%.",
   });
   slides.push({
     kind: "statement",
@@ -434,14 +434,6 @@ function FacilitatorPage() {
                       </div>
                     )}
                   </button>
-                  <div className="mx-auto mt-5 max-w-md rounded-2xl border border-accent/40 bg-card/70 px-6 py-4">
-                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                      Enter this room code
-                    </p>
-                    <p className="mt-2 font-mono text-4xl font-semibold tracking-[0.2em] text-foreground">
-                      {roomCode}
-                    </p>
-                  </div>
                   <p className="mt-2 select-all font-mono text-xs text-muted-foreground break-all">
                     {joinUrl}
                   </p>
@@ -465,7 +457,7 @@ function FacilitatorPage() {
                 {qrDataUrl && (
                   <a
                     href={qrDataUrl}
-                    download="harmony-permanent-qr.png"
+                    download={`harmony-room-${roomCode}-qr.png`}
                     className="rounded-full border border-border px-5 py-2 text-foreground/80 hover:border-accent"
                   >
                     Download QR for PowerPoint

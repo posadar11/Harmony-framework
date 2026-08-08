@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { WeeklyAllocationForm } from "@/components/WeeklyAllocationForm";
 import { WeeklyPieChart } from "@/components/WeeklyPieChart";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,66 +68,22 @@ type Step = "weekly" | "weekly-result";
 
 function JoinPage() {
   const { room } = Route.useSearch();
-  return room ? <ExercisePage room={room} /> : <RoomCodeEntry />;
+  return room ? <ExercisePage room={room} /> : <MissingRoomLink />;
 }
 
-function RoomCodeEntry() {
-  const [roomInput, setRoomInput] = useState("");
-  const [roomError, setRoomError] = useState("");
-
-  const connectToRoom = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const room = normalizeRoomCode(roomInput);
-    if (room.length !== 8) {
-      setRoomError("Enter the eight character room code shown by your facilitator.");
-      return;
-    }
-    window.location.assign(`/join?room=${encodeURIComponent(room)}`);
-  };
-
+function MissingRoomLink() {
   return (
     <div className="min-h-screen bg-background venn-bg">
       <main className="mx-auto flex min-h-screen max-w-lg items-center px-4 py-10">
         <section className="w-full rounded-3xl border border-border bg-card/80 p-6 text-center shadow-sm md:p-9">
           <p className="text-xs uppercase tracking-[0.2em] text-accent">The Diagram</p>
           <h1 className="mt-3 font-serif text-3xl text-foreground md:text-4xl">
-            Join your workshop room
+            Scan the workshop QR code
           </h1>
           <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground md:text-base">
-            Enter the room code displayed by your facilitator. The same QR code works for every
-            workshop.
+            The QR code shown by your facilitator connects you to the room and opens the exercise
+            immediately.
           </p>
-
-          <form onSubmit={connectToRoom} className="mt-7">
-            <label
-              htmlFor="room-code"
-              className="block text-left text-sm font-medium text-foreground"
-            >
-              Room code
-            </label>
-            <input
-              id="room-code"
-              type="text"
-              value={roomInput}
-              onChange={(event) => {
-                setRoomInput(normalizeRoomCode(event.target.value));
-                setRoomError("");
-              }}
-              autoComplete="off"
-              autoCapitalize="characters"
-              inputMode="text"
-              maxLength={8}
-              placeholder="AB12CD34"
-              className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-4 text-center font-mono text-2xl uppercase tracking-[0.2em] outline-none focus:border-accent"
-            />
-            {roomError && <p className="mt-3 text-sm text-destructive">{roomError}</p>}
-            <button
-              type="submit"
-              className="mt-5 w-full rounded-full bg-primary py-3.5 text-base font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Join room
-            </button>
-          </form>
         </section>
       </main>
     </div>
@@ -201,11 +157,6 @@ function ExercisePage({ room }: { room: string }) {
             {step === "weekly" && "Think about a typical week and divide all of your time."}
             {step === "weekly-result" && "Here is the shape of your typical week."}
           </p>
-          {room && (
-            <p className="mt-2 font-mono text-xs uppercase tracking-[0.14em] text-accent">
-              Connected to room {room}
-            </p>
-          )}
         </header>
 
         {step === "weekly" && (

@@ -41,13 +41,16 @@ function DiagramPresenter() {
     const room = savedRoom || createRoomCode();
     window.localStorage.setItem("hor.facilitator.room", room);
     setRoomCode(room);
+  }, []);
 
-    const url = `${window.location.origin}/join`;
+  useEffect(() => {
+    if (!roomCode || typeof window === "undefined") return;
+    const url = `${window.location.origin}/join?room=${encodeURIComponent(roomCode)}`;
     setJoinUrl(url);
     QRCode.toDataURL(url, { width: 720, margin: 2, color: { dark: "#2b2a26", light: "#ffffff" } })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(""));
-  }, []);
+  }, [roomCode]);
 
   const steps = ["Intro", "Current", "Ideal", "Submit"];
 
@@ -111,7 +114,7 @@ function DiagramPresenter() {
             currentForCompare={current}
           />
         )}
-        {step === 3 && <SubmitSlide qrDataUrl={qrDataUrl} joinUrl={joinUrl} roomCode={roomCode} />}
+        {step === 3 && <SubmitSlide qrDataUrl={qrDataUrl} joinUrl={joinUrl} />}
       </main>
 
       <footer className="flex items-center justify-between border-t border-border/60 px-6 py-4">
@@ -218,15 +221,7 @@ function BuilderSlide({
   );
 }
 
-function SubmitSlide({
-  qrDataUrl,
-  joinUrl,
-  roomCode,
-}: {
-  qrDataUrl: string;
-  joinUrl: string;
-  roomCode: string;
-}) {
+function SubmitSlide({ qrDataUrl, joinUrl }: { qrDataUrl: string; joinUrl: string }) {
   return (
     <section className="mx-auto flex min-h-full max-w-4xl flex-col items-center justify-center px-8 py-12 text-center">
       <p className="text-xs uppercase tracking-[0.25em] text-accent">Your turn</p>
@@ -234,7 +229,7 @@ function SubmitSlide({
         Build your own diagram
       </h2>
       <p className="mt-4 max-w-xl text-foreground/80">
-        Scan the permanent code, enter the room code below, then build your Current and Ideal.
+        Scan the code to connect to the room and open the exercise immediately.
       </p>
       <div className="mt-8 rounded-3xl border border-border bg-white p-6 shadow-sm">
         {qrDataUrl ? (
@@ -249,19 +244,11 @@ function SubmitSlide({
           </div>
         )}
       </div>
-      <div className="mt-5 rounded-2xl border border-accent/40 bg-card/70 px-6 py-4">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Enter this room code
-        </p>
-        <p className="mt-2 font-mono text-4xl font-semibold tracking-[0.2em] text-foreground">
-          {roomCode}
-        </p>
-      </div>
       <p className="mt-5 select-all font-mono text-sm text-muted-foreground break-all">{joinUrl}</p>
       {qrDataUrl && (
         <a
           href={qrDataUrl}
-          download="harmony-permanent-qr.png"
+          download="harmony-room-qr.png"
           className="mt-4 rounded-full border border-border px-5 py-2 text-sm text-foreground/80 hover:border-accent"
         >
           Download QR for PowerPoint
