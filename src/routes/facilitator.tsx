@@ -275,7 +275,7 @@ function FacilitatorPage() {
     session: 1,
     title: "Overlap multiplies value",
     subtitle: "Live overlap demonstration",
-    body: "A 40-hour workweek is 24% of the full 168-hour week. After 7–8 hours of sleep each night, 112–119 waking hours remain, making work about one-third of waking time. The larger Work circle starts partially over You, with only the portion inside measuring 33%.",
+    body: "The average full-time American works 40 hours per week. After 7–8 hours of sleep each night, 112–119 waking hours remain, making work about one-third of your total waking time during the week.",
     source:
       "Sources: BLS American Time Use Survey; CDC/NIOSH analysis of ATUS. Full-time workers averaged 8.1 work hours and 7.8 sleep hours on workdays.",
   });
