@@ -69,10 +69,6 @@ export function WeeklyAllocationForm({
           with people, doing hobbies, and the time that is simply for yourself. Add another category
           if something important is missing.
         </p>
-        <p className="mt-3 rounded-xl bg-muted/60 px-4 py-3 text-xs text-foreground/75">
-          Example: Work 60%, Family 20%, Close relationships 10%, Hobbies 5%, and Time for myself
-          5%.
-        </p>
       </section>
 
       <div className="space-y-3">
