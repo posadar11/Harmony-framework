@@ -76,9 +76,6 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
           more than one area, but whether that creates value is personal—it depends on how you
           experience it.
         </p>
-        <p className="mt-2 text-xs font-medium text-foreground">
-          The goal is not more overlap. It is more meaningful, chosen overlap. We need each other.
-        </p>
       </div>
     </section>
   );
