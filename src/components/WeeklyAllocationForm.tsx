@@ -45,7 +45,7 @@ export function WeeklyAllocationForm({
       ...allocations,
       {
         id: `weekly-custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        label: `Additional category ${customCount + 1}`,
+        label: "",
         percent: 0,
         color: WEEKLY_COLORS[colorIndex],
         custom: true,
@@ -66,8 +66,8 @@ export function WeeklyAllocationForm({
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Divide 100% of your week across the categories below. Include the time you spend working,
-          with people, doing hobbies, and the time that is simply for yourself. Add another category
-          if something important is missing.
+          with people, doing hobbies, and the time that is simply for yourself. If a core area of
+          your life is missing, add and name your own category.
         </p>
       </section>
 
@@ -87,7 +87,9 @@ export function WeeklyAllocationForm({
                   type="text"
                   value={allocation.label}
                   onChange={(event) => update(allocation.id, { label: event.target.value })}
-                  aria-label="Additional category name"
+                  placeholder="Name your category"
+                  aria-label="Custom category name"
+                  autoFocus
                   className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent"
                 />
               ) : (
@@ -148,9 +150,12 @@ export function WeeklyAllocationForm({
         <button
           type="button"
           onClick={addCategory}
-          className="w-full rounded-xl border border-dashed border-border py-3 text-sm text-muted-foreground transition-colors hover:border-accent hover:text-foreground"
+          className="w-full rounded-2xl border border-dashed border-accent/60 bg-accent/5 px-5 py-4 text-left transition-colors hover:border-accent hover:bg-accent/10"
         >
-          + Add another category
+          <span className="block text-sm font-medium text-foreground">+ Add your own category</span>
+          <span className="mt-1 block text-xs text-muted-foreground">
+            Include another area that is core to your life.
+          </span>
         </button>
       )}
 
