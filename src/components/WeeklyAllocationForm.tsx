@@ -162,7 +162,7 @@ export function WeeklyAllocationForm({
             <p className="text-sm font-medium text-foreground">Total allocation</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {total === 100
-                ? "Perfect—your typical week adds up to 100%."
+                ? "Perfect. Your typical week adds up to 100%."
                 : total < 100
                   ? `You still have ${remaining}% left to allocate.`
                   : `Reduce your allocations by ${Math.abs(remaining)}%.`}

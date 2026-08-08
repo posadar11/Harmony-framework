@@ -407,7 +407,7 @@ export function DiagramBuilder({
               {Math.round(uniqueCoverage)}% is occupied by the people, responsibilities, and
               activities shown.
             </span>{" "}
-            The remaining {Math.round(remainingCoverage)}% is unoccupied personal time—time that is
+            The remaining {Math.round(remainingCoverage)}% is unoccupied personal time. It is
             entirely yours and is not spent with others, working, participating in community, or
             doing a hobby.
             {sharedAllocation >= 1 &&

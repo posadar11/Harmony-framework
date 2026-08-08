@@ -178,6 +178,7 @@ export function estimateCategoryDistribution(
     }));
   const categoryCounts = domains.map(() => 0);
   const pairCounts = new Map<string, number>();
+  const breakdownCounts = new Map<string, number>();
   let pointsInsideYou = 0;
   let unionPoints = 0;
   const youRadiusSquared = youRadiusRatio * youRadiusRatio;
@@ -201,6 +202,8 @@ export function estimateCategoryDistribution(
       });
       if (covered.length === 0) continue;
       unionPoints++;
+      const breakdownKey = covered.join(":");
+      breakdownCounts.set(breakdownKey, (breakdownCounts.get(breakdownKey) ?? 0) + 1);
       for (let first = 0; first < covered.length; first++) {
         for (let second = first + 1; second < covered.length; second++) {
           const key = `${covered[first]}:${covered[second]}`;
@@ -214,6 +217,7 @@ export function estimateCategoryDistribution(
     return {
       categories: [],
       pairOverlaps: [],
+      breakdown: [],
       total: 0,
       displayTotal: 0,
       uniqueCoverage: 0,
@@ -255,10 +259,39 @@ export function estimateCategoryDistribution(
     })
     .filter((overlap) => overlap.percent >= 0.5)
     .sort((a, b) => b.percent - a.percent);
+  const breakdownGroups = [...breakdownCounts.entries()].map(([key, count]) => {
+    const indices = key.split(":").map(Number);
+    const labels = indices.map((index) => domains[index].label);
+    return {
+      ids: indices.map((index) => domains[index].id),
+      labels,
+      colors: indices.map((index) => domains[index].color),
+      label: labels.length === 1 ? `${labels[0]} only` : labels.join(" + "),
+      percent: (count / pointsInsideYou) * 100,
+    };
+  });
+  const breakdownDisplayPercents = breakdownGroups.map((group) => Math.floor(group.percent));
+  let breakdownRemaining =
+    Math.round(uniqueCoverage) - breakdownDisplayPercents.reduce((sum, value) => sum + value, 0);
+  const breakdownRemainderOrder = breakdownGroups
+    .map((group, index) => ({ index, remainder: group.percent % 1 }))
+    .sort((a, b) => b.remainder - a.remainder);
+  for (let index = 0; index < breakdownRemainderOrder.length && breakdownRemaining > 0; index++) {
+    breakdownDisplayPercents[breakdownRemainderOrder[index].index]++;
+    breakdownRemaining--;
+  }
+  const breakdown = breakdownGroups
+    .map((group, index) => ({ ...group, displayPercent: breakdownDisplayPercents[index] }))
+    .filter((group) => group.displayPercent > 0)
+    .sort((a, b) => {
+      if (a.labels.length !== b.labels.length) return a.labels.length - b.labels.length;
+      return b.percent - a.percent;
+    });
 
   return {
     categories: displayedCategories,
     pairOverlaps,
+    breakdown,
     total,
     displayTotal,
     uniqueCoverage,

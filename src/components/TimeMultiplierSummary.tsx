@@ -43,7 +43,7 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
         <p className="text-xs font-medium text-foreground">How to tell the story</p>
         <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
           {overlapExtra > 0
-            ? `${distribution.displayUniqueCoverage}% of the week is represented once. ${overlapExtra}% is counted again because those same hours belong to more than one category. That brings the category total to ${distribution.displayTotal}%. The week did not get longer—the same hours are serving more than one part of life.`
+            ? `${distribution.displayUniqueCoverage}% of the week is represented once. ${overlapExtra}% is counted again because those same hours belong to more than one category. That brings the category total to ${distribution.displayTotal}%. The week did not get longer. The same hours are serving more than one part of life.`
             : "The part of each category inside You determines its percentage. A Size 100 category centered on You covers the full circle and reads 100%."}
         </p>
       </div>
@@ -67,13 +67,44 @@ export function TimeMultiplierSummary({ circles }: TimeMultiplierSummaryProps) {
             </li>
           ))}
         </ul>
+        <div className="mt-4 border-t border-border pt-4">
+          <div className="flex items-center justify-between gap-3 text-xs font-medium text-foreground">
+            <span>Breakdown inside You</span>
+            <span className="font-mono">{distribution.displayUniqueCoverage}% once</span>
+          </div>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+            Only means no overlap. A plus sign means the same time serves every category named.
+          </p>
+          <ul className="mt-3 max-h-44 space-y-2 overflow-y-auto pr-1">
+            {distribution.breakdown.map((group) => (
+              <li
+                key={group.ids.join(":")}
+                className="flex items-center justify-between gap-3 text-xs"
+              >
+                <span className="flex min-w-0 items-center gap-2 text-foreground/75">
+                  <span className="flex shrink-0 -space-x-1">
+                    {group.colors.map((color, index) => (
+                      <span
+                        key={`${group.ids[index]}:${color}`}
+                        className="h-2.5 w-2.5 rounded-full border border-background"
+                        style={{ background: color }}
+                      />
+                    ))}
+                  </span>
+                  <span className="truncate">{group.label}</span>
+                </span>
+                <strong className="font-mono text-foreground">{group.displayPercent}%</strong>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
       <div className="mt-4 rounded-xl border border-accent/30 bg-accent/5 p-4">
         <p className="text-xs uppercase tracking-[0.13em] text-accent">Reflection</p>
         <p className="mt-2 text-sm leading-relaxed text-foreground/85">
           Intentionality means choosing overlaps that support the life you want. One hour can serve
-          more than one area, but whether that creates value is personal—it depends on how you
+          more than one area, but whether that creates value is personal. It depends on how you
           experience it.
         </p>
       </div>

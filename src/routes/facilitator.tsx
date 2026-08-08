@@ -236,7 +236,7 @@ function FacilitatorPage() {
   slides.push({
     kind: "statement",
     session: 0,
-    title: "Work-life balance does not exist",
+    title: "Work life balance does not exist",
     subtitle: "The caution",
     body: "60% of US workers report having no clear boundaries between their work responsibilities and their personal lives.",
     highlights: [
@@ -245,14 +245,14 @@ function FacilitatorPage() {
       { value: "72%", label: "burnout among remote workers" },
     ],
     footnote:
-      "Source: SurveyMonkey, Work-Life Balance Statistics. The determining factor is boundary erosion, not workload.",
+      "Source: SurveyMonkey, Work Life Balance Statistics. The determining factor is boundary erosion, not workload.",
   });
   slides.push({
     kind: "intro",
     session: 0,
     title: "Be intentional with the same 100%",
     subtitle: "The relationship lens",
-    body: "Your week is finite, but the same hour can contribute to more than one relationship. The question is not only where time goes, but what—and who—that time serves.",
+    body: "Your week is finite, but the same hour can contribute to more than one relationship. The question is not only where time goes, but what that time serves and who it serves.",
     chips: [
       { label: "Work", color: CATEGORY_COLORS.Work },
       { label: "Close relationships", color: CATEGORY_COLORS["Close relationships"] },
@@ -268,16 +268,16 @@ function FacilitatorPage() {
     session: 1,
     title: "Time can create more than one kind of value",
     subtitle: "The multiplier",
-    body: "A conversation with a family member who is also a colleague can strengthen family and work at the same time. A walk with a friend can serve close relationships and health. Shared time does not create extra hours—it lets one hour contribute to more than one part of life.",
+    body: "A conversation with a family member who is also a colleague can strengthen family and work at the same time. A walk with a friend can serve close relationships and health. Shared time does not create extra hours. It lets one hour contribute to more than one part of life.",
   });
   slides.push({
     kind: "overlap",
     session: 1,
     title: "Overlap multiplies value",
     subtitle: "Live overlap demonstration",
-    body: "The average full-time American works 40 hours per week. After 7–8 hours of sleep each night, 112–119 waking hours remain, making work about one-third of your total waking time during the week.",
+    body: "The average full time American works 40 hours per week. After 7 to 8 hours of sleep each night, 112 to 119 waking hours remain, making work about one third of your total waking time during the week.",
     source:
-      "Sources: BLS American Time Use Survey; CDC/NIOSH analysis of ATUS. Full-time workers averaged 8.1 work hours and 7.8 sleep hours on workdays.",
+      "Sources: BLS American Time Use Survey; CDC/NIOSH analysis of ATUS. Full time workers averaged 8.1 work hours and 7.8 sleep hours on workdays.",
   });
   slides.push({
     kind: "scenario",
@@ -652,8 +652,8 @@ function FacilitatorPage() {
               <p className="text-xs uppercase tracking-[0.18em] text-accent">Workshop</p>
               <h3 className="mt-2 font-serif text-xl text-foreground">The Diagram</h3>
               <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                An 8-slide live flow: room exercise, average, boundary statistics, intentional
-                overlap, and a dynamic time-multiplier demonstration.
+                An 8 slide live flow: room exercise, average, boundary statistics, intentional
+                overlap, and a dynamic time multiplier demonstration.
               </p>
               <span className="mt-4 inline-block text-sm text-accent group-hover:underline">
                 Open presenter →

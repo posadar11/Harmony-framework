@@ -79,7 +79,7 @@ function RoomCodeEntry() {
     event.preventDefault();
     const room = normalizeRoomCode(roomInput);
     if (room.length !== 8) {
-      setRoomError("Enter the eight-character room code shown by your facilitator.");
+      setRoomError("Enter the eight character room code shown by your facilitator.");
       return;
     }
     window.location.assign(`/join?room=${encodeURIComponent(room)}`);

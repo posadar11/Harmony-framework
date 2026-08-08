@@ -28,7 +28,8 @@ export const sessions: SessionContent[] = [
     id: 1,
     title: "See It",
     subtitle: "Draw your Current and your Ideal",
-    coreQuestion: "What does your life actually look like right now, and what do you want it to look like?",
+    coreQuestion:
+      "What does your life actually look like right now, and what do you want it to look like?",
     narrative: [
       "You are the circle in the middle. Around you are the relationships that pull on your time and energy: work, a partner, family, friends, a community, a hobby, yourself. Where another circle overlaps yours is the space that relationship takes.",
       "Most people have never seen their life laid out this way. Session one is one thing only: draw your Current, then draw your Ideal. The gap between the two is the whole workshop.",
@@ -43,7 +44,8 @@ export const sessions: SessionContent[] = [
     id: 2,
     title: "Name It",
     subtitle: "Where the gap comes from",
-    coreQuestion: "Which circle grew without you choosing it, and what would you need to say to change that?",
+    coreQuestion:
+      "Which circle grew without you choosing it, and what would you need to say to change that?",
     narrative: [
       "Circles rarely expand by decision. Work grows one reasonable ask at a time. Family expands around a crisis. A friendship thins because no one asked it to stay. By the time you notice, the diagram looks like something that happened to you.",
       "Session two is about naming the one circle in your Current that is out of proportion, and the specific conversation, boundary, or agreement that would let it shift.",
@@ -58,7 +60,8 @@ export const sessions: SessionContent[] = [
     id: 3,
     title: "Commit to It",
     subtitle: "One shift, this month",
-    coreQuestion: "What is the smallest change that would move your Current one step toward your Ideal?",
+    coreQuestion:
+      "What is the smallest change that would move your Current one step toward your Ideal?",
     narrative: [
       "Harmony is not a redesign of your life. It is one honest adjustment, held long enough to matter, then another.",
       "Session three ends with a single commitment. Not a plan. Not a list. One specific thing you will do this month that moves the circle you named in session two.",
@@ -69,7 +72,6 @@ export const sessions: SessionContent[] = [
     exerciseDescription:
       "Write one sentence: what you will do, with whom, by when. Small enough to actually happen. Clear enough that you will know when it is done.",
   },
-
 ];
 
 export const tracks = [
@@ -112,7 +114,10 @@ export const facilitatorAgenda = [
     title: "Diving Deeper",
     blocks: [
       { time: "0, 15 min", label: "Recap; introduce complexity of each circle" },
-      { time: "15, 35 min", label: "Work, close relationships, family, friends, hobbies, narrative" },
+      {
+        time: "15, 35 min",
+        label: "Work, close relationships, family, friends, hobbies, narrative",
+      },
       { time: "35, 50 min", label: "Scenario: every circle pulling at once" },
       { time: "50, 75 min", label: "Harmony Audit (3 questions per circle)" },
     ],
@@ -176,7 +181,7 @@ export const framework = {
     {
       heading: "Work",
       paragraphs: [
-        "Work is the most accepted reason for a circle to quietly expand, and often the hardest one to see growing. Instead of work-life balance, the framework asks for harmony: work takes the space it genuinely needs, in conscious negotiation with the rest of the diagram.",
+        "Work is the most accepted reason for a circle to quietly expand, and often the hardest one to see growing. Instead of work life balance, the framework asks for harmony: work takes the space it genuinely needs, in conscious negotiation with the rest of the diagram.",
         "Work is also not a single circle. A manager, a team, peers, and the work itself each pull in their own way. Naming them separately is usually the first step toward changing them.",
       ],
     },
@@ -203,4 +208,3 @@ export const framework = {
     },
   ],
 };
-
