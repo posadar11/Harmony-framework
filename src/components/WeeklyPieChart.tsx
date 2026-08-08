@@ -19,6 +19,22 @@ function buildGradient(allocations: WeeklyAllocation[]) {
   return stops.length > 0 ? `conic-gradient(from -90deg, ${stops.join(", ")})` : "var(--muted)";
 }
 
+function buildPieLabels(allocations: WeeklyAllocation[]) {
+  let position = 0;
+  return allocations.map((allocation, index) => {
+    const midpoint = position + allocation.percent / 2;
+    position += allocation.percent;
+    const angle = (midpoint / 100) * Math.PI * 2 - Math.PI / 2;
+    const radius =
+      allocations.length === 1 ? 0 : allocation.percent < 8 ? 36 + (index % 2) * 4 : 30;
+    return {
+      allocation,
+      left: 50 + Math.cos(angle) * radius,
+      top: 50 + Math.sin(angle) * radius,
+    };
+  });
+}
+
 export function WeeklyPieChart({
   allocations,
   title = "Your typical week",
@@ -26,6 +42,7 @@ export function WeeklyPieChart({
   compact = false,
 }: WeeklyPieChartProps) {
   const visible = allocations.filter((allocation) => allocation.percent > 0);
+  const pieLabels = buildPieLabels(visible);
 
   return (
     <section className="rounded-2xl border border-border bg-card/70 p-5 md:p-7">
@@ -40,13 +57,24 @@ export function WeeklyPieChart({
       >
         <div className="mx-auto w-full max-w-sm rounded-2xl border border-border/60 bg-background/50 p-5">
           <div
-            className="mx-auto aspect-square w-full max-w-[300px] rounded-full border-2 border-foreground/20 shadow-sm"
+            className="relative mx-auto aspect-square w-full max-w-[300px] rounded-full border-2 border-foreground/20 shadow-sm"
             style={{ background: buildGradient(visible) }}
             role="img"
             aria-label={visible
               .map((allocation) => `${allocation.label}: ${Math.round(allocation.percent)}%`)
               .join(", ")}
-          />
+          >
+            {pieLabels.map(({ allocation, left, top }) => (
+              <span
+                key={allocation.id}
+                className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-foreground/10 bg-background/85 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-foreground shadow-sm sm:text-xs"
+                style={{ left: `${left}%`, top: `${top}%` }}
+                aria-hidden="true"
+              >
+                {Math.round(allocation.percent)}%
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-3">

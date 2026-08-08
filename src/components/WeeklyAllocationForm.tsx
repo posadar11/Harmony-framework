@@ -10,8 +10,8 @@ interface WeeklyAllocationFormProps {
 
 const MAX_CUSTOM_CATEGORIES = 5;
 
-function clampPercent(value: number) {
-  return Math.min(100, Math.max(0, Math.round(value)));
+function clampPercent(value: number, maximum = 100) {
+  return Math.min(maximum, Math.max(0, Math.round(value)));
 }
 
 export function WeeklyAllocationForm({
@@ -98,28 +98,36 @@ export function WeeklyAllocationForm({
                   {allocation.label}
                 </label>
               )}
-              <div className="relative w-24 shrink-0">
-                <input
-                  id={`${allocation.id}-percent`}
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={1}
-                  inputMode="numeric"
-                  value={allocation.percent === 0 ? "" : allocation.percent}
-                  placeholder="0"
-                  onFocus={(event) => event.currentTarget.select()}
-                  onChange={(event) =>
-                    update(allocation.id, {
-                      percent: clampPercent(Number(event.target.value) || 0),
-                    })
-                  }
-                  aria-label={`${allocation.label} percentage`}
-                  className="w-full rounded-xl border border-border bg-background py-3 pl-3 pr-8 text-right font-mono text-base text-foreground outline-none focus:border-accent"
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                  %
-                </span>
+              <div className="w-24 shrink-0">
+                <div className="relative">
+                  <input
+                    id={`${allocation.id}-percent`}
+                    type="number"
+                    min={0}
+                    max={Math.max(0, 100 - total + allocation.percent)}
+                    step={1}
+                    inputMode="numeric"
+                    value={allocation.percent === 0 ? "" : allocation.percent}
+                    placeholder="0"
+                    onFocus={(event) => event.currentTarget.select()}
+                    onChange={(event) =>
+                      update(allocation.id, {
+                        percent: clampPercent(
+                          Number(event.target.value) || 0,
+                          Math.max(0, 100 - total + allocation.percent),
+                        ),
+                      })
+                    }
+                    aria-label={`${allocation.label} percentage`}
+                    className="w-full rounded-xl border border-border bg-background py-3 pl-3 pr-8 text-right font-mono text-base text-foreground outline-none focus:border-accent"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    %
+                  </span>
+                </div>
+                <p className="mt-1 text-right text-[10px] text-muted-foreground">
+                  Up to {Math.max(0, 100 - total + allocation.percent)}%
+                </p>
               </div>
               {allocation.custom && (
                 <button
